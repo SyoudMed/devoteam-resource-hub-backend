@@ -20,7 +20,7 @@ import { MailService } from './mail.service';
     
   ],
   providers: [AuthService, JwtStrategy,MailService],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, JwtModule,MailService],
   controllers: [AuthController],
 })
 export class AuthModule {}

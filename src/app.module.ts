@@ -7,7 +7,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import jwtConfig from './auth/config/jwt.config';
 import { EngineerModule } from './engineer/engineer.module';
 import { Engineer } from './engineer/entities/engineer.entity';
-
+import { CommercialModule } from './commercial/commercial.module';
+import { CommentModule } from './comments/comment.module';
+import { Comment } from './comments/entities/comment.entity';
 
 @Module({
   imports: [
@@ -28,7 +30,7 @@ import { Engineer } from './engineer/entities/engineer.entity';
         username: configService.get<string>('DATABASE_USER'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [User,Engineer], 
+        entities: [User,Engineer,Comment], 
         synchronize: true,
       }),
       inject: [ConfigService], 
@@ -37,6 +39,8 @@ import { Engineer } from './engineer/entities/engineer.entity';
     AuthModule,
     UsersModule,
     EngineerModule,
+    CommercialModule,
+    CommentModule,
   ],
 })
 export class AppModule {}

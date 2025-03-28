@@ -2,156 +2,105 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import * as bcrypt from 'bcryptjs';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UserRole } from 'src/common/enum/UserRole.enum';
+
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Engineer } from 'src/engineer/entities/engineer.entity';
-import { AvailabilityStatus } from 'src/common/enum/AvailabilityStatus.enum'; 
-import { validate } from 'class-validator';
+import { v2 as cloudinary } from 'cloudinary';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    @InjectRepository(Engineer)
-    private engineerRepository: Repository<Engineer>,
+    
   ) {}
-  async createUser(createUserDto: CreateUserDto): Promise<User> {
-    
-    const existingUser = await this.usersRepository.findOne({
-      where: { email: createUserDto.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('Cet email est déjà utilisé.');
+
+
+
+  async updateProfile(userId: number, updateProfileDto: UpdateUserDto, file?: Express.Multer.File): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
     }
-  
-    
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-  
-    
-    const user = this.usersRepository.create({
-      firstName: createUserDto.firstName,
-      lastName: createUserDto.lastName,
-      telephone: createUserDto.telephone,
-      email: createUserDto.email,
-      password: hashedPassword,
-      role: createUserDto.role,
-    });
-  
-    
-    const savedUser = await this.usersRepository.save(user);
-  
-    
-    if (createUserDto.role === UserRole.INGENIEUR) {
-      const engineer = this.engineerRepository.create({
-        disponibiliteStatus: AvailabilityStatus.AVAILABLE,
-        user: savedUser, 
+    if (updateProfileDto.email && updateProfileDto.email !== user.email) {
+      const existingUser = await this.usersRepository.findOne({
+        where: { email: updateProfileDto.email },
       });
-      savedUser.engineerProfile = engineer;
-      await this.engineerRepository.save(engineer); 
-      await this.usersRepository.save(savedUser); 
+      if (existingUser && existingUser.id !== userId) {
+        throw new ConflictException('Cet email est déjà utilisé par un autre utilisateur');
+      }
     }
-
-    
-
-    
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        throw new ConflictException('Type de fichier non supporté. Seuls JPEG, PNG et GIF sont acceptés.');
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        throw new ConflictException('La taille du fichier dépasse la limite de 5MB.');
+      }
   
-    return savedUser;
+      const uploadResult = await this.uploadToCloudinary(file, userId);
+      const oldProfilePhotoUrl = user.profilePhotoUrl;
+      updateProfileDto.profilePhotoUrl = uploadResult.secure_url;
+      await this.usersRepository.update(userId, updateProfileDto);
+      if (oldProfilePhotoUrl) {
+        const oldPublicId = this.extractPublicId(oldProfilePhotoUrl);
+        if (oldPublicId) {
+          cloudinary.uploader.destroy(`profile_photos/${oldPublicId}`).catch((err) => {
+            console.error("Erreur lors de la suppression de l'ancienne image:", err);
+          });
+        }
+      }
+    } else {
+      await this.usersRepository.update(userId, updateProfileDto);
+    }
+    const updatedUser = await this.usersRepository.findOne({ where: { id: userId } });
+    return updatedUser as User;
   }
-  
 
 
-
-/* creer un user 
-  async createUser(createUserDto: CreateUserDto): Promise<User> {
-    
-    if (createUserDto.role === UserRole.MANAGER) {
-      throw new ConflictException("Vous ne pouvez pas créer un compte avec le rôle 'manager'.");
-    }
-    const existing = await this.usersRepository.findOne({ where: { email: createUserDto.email } });
-    if (existing) {
-      throw new ConflictException('Cet email est déjà utilisé.');
-    }
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    const user = this.usersRepository.create({
-      email: createUserDto.email,
-      password: hashedPassword,
-      role: createUserDto.role,
-      
-    });
-
-    return this.usersRepository.save(user);
+  private async uploadToCloudinary(file: Express.Multer.File, userId: number): Promise<any> {
+    return cloudinary.uploader.upload(
+      `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+      {
+        folder: 'profile_photos',
+        public_id: `user_${userId}_${Date.now()}`,
+        resource_type: 'image',
+      }
+    );
   }
-*/
 
-  /* update user */
-/*
-  async updateUser(id : number , updateUserDto :UpdateUserDto):Promise<User>{
-    const user = await this.usersRepository.findOne({where:{id}});
-    if(!user){
-      throw new ConflictException('User not found');
-    }
-    const updatedUser = Object.assign(user, updateUserDto);
-    return this.usersRepository.save(updatedUser);
-  }
-*/
 
-  
-
-  
-  
-/* supprimer un utilisateur */
-  async deleteUser(id :number):Promise<void>{
-    const user = await this.usersRepository.findOne({where:{id}});
-    if(!user){
-      throw new ConflictException('User not found');
+  async deleteUser(id: number): Promise<{ message: string }> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
     }
     await this.usersRepository.remove(user);
-
+    return { message: `Utilisateur avec l'ID ${id} supprimé avec succès` };
   }
-
-
-  /* routourner tout les users */
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
   }
 
-
-  /* find user by email */
-
   async findByEmail(email: string): Promise<User | null> {
-    return await this.usersRepository.findOne({ where: { email } });
+    return this.usersRepository.findOne({ where: { email } });
   }
-  
-
-  /* find user by id */
 
   async findById(id: number): Promise<User | null> {
-    return await this.usersRepository.findOne({ where: { id } });
+    return this.usersRepository.findOne({ where: { id } });
   }
-  
 
-
-/* update password */
   async updatePassword(userId: number, newPassword: string): Promise<void> {
-  
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
-    }    
-    user.password = newPassword;
+    }
+    user.password = newPassword; 
     await this.usersRepository.save(user);
   }
 
-
-
-  
-
   async savePasswordResetCode(userId: number, resetCode: string, expiration: number): Promise<void> {
-    
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -161,11 +110,16 @@ export class UsersService {
     await this.usersRepository.save(user);
   }
 
-
-
+  async changeactivation(userId: number): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    user.isVerified = true;
+    await this.usersRepository.save(user);
+  }
 
   async clearResetPasswordCode(userId: number): Promise<void> {
-  
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -174,6 +128,52 @@ export class UsersService {
     user.resetCodeExpiration = null;
     await this.usersRepository.save(user);
   }
+
+  async clearValidationCode(userId: number): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    user.verificationCode = null;
+    user.verificationCodeExpiration = null;
+    await this.usersRepository.save(user);
+  }
+
+  async updateIsFirstLogin(userId: number, isFirstLogin: boolean): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    user.isFirstLogin = isFirstLogin;
+    await this.usersRepository.save(user);
+    console.log(`Utilisateur ${userId} mis à jour, isFirstLogin: ${isFirstLogin}`);
+  }
+
+  async deleteProfilePhoto(userId: number): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    if (user.profilePhotoUrl) {
+      const publicId = this.extractPublicId(user.profilePhotoUrl);
+      if (publicId) {
+        await cloudinary.uploader.destroy(`profile_photos/${publicId}`);
+      }
+      user.profilePhotoUrl = null;
+      const updatedUser = await this.usersRepository.save(user);
+      const { password, ...result } = updatedUser;
+      return result as User;
+    }
+
+    const { password, ...result } = user;
+    return result as User;
+  }
+
   
-  
+  private extractPublicId(url: string): string | null {
+    const parts = url.split('/');
+    const fileName = parts.pop()?.split('.')[0];
+    return fileName || null;
+  }
 }

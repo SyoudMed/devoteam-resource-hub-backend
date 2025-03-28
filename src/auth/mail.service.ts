@@ -1,47 +1,64 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
+import * as fs from "fs";
+import * as path from "path";
 
 @Injectable()
 export class MailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({ 
-      host: 'smtp.ethereal.email',
-      port: 587,
+    this.transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
-        user: 'daija.jerde87@ethereal.email',
-        pass: 'bnctF2ReSnVvQFkFa4'
-      }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
   }
 
-  async sendResetPasswordEmail(email: string, resetPasswordCode: string):Promise<{ message: string }> {
-    const resetLink = `http://localhost:5173/modifier-password`;
+  private loadTemplate(templateName: string, variables: Record<string, string>): string {
+    const templatePath = path.join(__dirname, 'templates', 'account-verification.html'); 
+    let template = fs.readFileSync(templatePath, "utf-8");
+
+    for (const [key, value] of Object.entries(variables)) {
+      template = template.replace(new RegExp(`{{${key}}}`, "g"), value);
+    }
+
+    return template;
+  }
+
+  async sendResetPasswordEmail(email: string, resetPasswordCode: string): Promise<{ message: string }> {
+    const resetLink = `http://localhost:5173/modifier-password?email=${encodeURIComponent(email)}`;
+
+    const htmlContent = this.loadTemplate("reset-password", { resetPasswordCode, resetLink });
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Réinitialisation de votre mot de passe',
-      html: `
-        <p>Bonjour,</p>
-        <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
-        <p>Utilisez le code suivant : <strong>${resetPasswordCode}</strong></p>
-        <p>Ou cliquez sur le lien ci-dessous pour réinitialiser directement votre mot de passe :</p>
-        <a href="${resetLink}" style="color: blue; text-decoration: underline;">Réinitialiser mon mot de passe</a>
-        <p>Si vous n'avez pas fait cette demande, ignorez cet email.</p>
-      `,
+      subject: "Réinitialisation de votre mot de passe",
+      html: htmlContent,
     };
 
-    try {
-      
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Email envoyé à ${email}`);
+    await this.transporter.sendMail(mailOptions);
+    return { message: `Email envoyé à ${email}` };
+  }
 
-      
-      return { message: 'Email envoyé avec succès à ' + email };
-    } catch (error) {
-      console.error(`Erreur lors de l'envoi de l'email à ${email}:`, error);
-      throw new Error('Échec de l\'envoi de l\'email');
-    }
+  async sendAccountVerificationEmail(email: string, password: string, verificationCode: string): Promise<{ message: string }> {
+    const verificationLink = `http://localhost:5173/verification?email=${encodeURIComponent(email)}`;
+
+    const htmlContent = this.loadTemplate("account-verification", { email, password, verificationCode, verificationLink });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Vérification de votre compte",
+      html: htmlContent,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+    return { message: `Email envoyé à ${email}` };
   }
 }

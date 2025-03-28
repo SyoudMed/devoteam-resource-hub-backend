@@ -1,27 +1,24 @@
-
 import { AvailabilityStatus } from 'src/common/enum/AvailabilityStatus.enum';
 import { User } from '../../users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Speciality } from 'src/common/enum/Speciality.enum';
+import { Comment } from '../../comments/entities/comment.entity';
 
 @Entity()
 export class Engineer {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
+  @Column({ type: 'enum', enum: AvailabilityStatus, default: AvailabilityStatus.AVAILABLE })
+  disponibiliteStatus: AvailabilityStatus;
 
-    
+  @Column({ type: 'varchar', length: 255 })
+  speciality: Speciality;
 
-    @Column({ type: 'enum', enum: AvailabilityStatus, default: AvailabilityStatus.AVAILABLE })
-    disponibiliteStatus: AvailabilityStatus;
-/*
-    @Column({ type: 'date', nullable: true })
-    disponibiliteDateDebut: Date | null;
+  @OneToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn()
+  user: User;
 
-    @Column({ type: 'date', nullable: true })
-    disponibiliteDateFin: Date | null; 
-*/
-
-    @OneToOne(() => User, (user) => user.engineerProfile)
-    @JoinColumn()
-    user: User;
+  @OneToMany(() => Comment, (comment) => comment.engineer)
+  comments: Comment[];
 }

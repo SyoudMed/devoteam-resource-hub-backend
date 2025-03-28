@@ -8,11 +8,11 @@ export class User {
   id: number;
 
   @Column()
-  firstName : string;
-      
+  firstName: string;
+
   @Column()
-  lastName: string; 
-  
+  lastName: string;
+
   @Column()
   telephone: string;
 
@@ -24,7 +24,6 @@ export class User {
 
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;
-  
 
   @CreateDateColumn()
   createdAt: Date;
@@ -32,14 +31,25 @@ export class User {
   @CreateDateColumn()
   updatedAt: Date;
 
-
   @Column({ type: 'varchar', length: 255, nullable: true })
-  resetCode: string | null; 
+  resetCode: string | null;
 
   @Column({ type: 'bigint', nullable: true })
   resetCodeExpiration: number | null;
 
-  @OneToOne(() => Engineer, (engineer) => engineer.user, { cascade: true, nullable: true })
-  @JoinColumn()
-  engineerProfile?: Engineer;
+  @Column({ type: 'varchar', length: 6, nullable: true })
+  verificationCode: string | null;
+
+  @Column({ type: 'bigint', nullable: true })
+  verificationCodeExpiration: number | null;
+
+  @Column({ default: false })
+  isVerified: boolean;
+
+
+  @Column({ default: true })
+  isFirstLogin:boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  profilePhotoUrl?: string | null;
 }

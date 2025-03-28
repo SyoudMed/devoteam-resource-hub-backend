@@ -1,4 +1,4 @@
-import { UserRole } from "src/common/enum/UserRole.enum";
+
 import { IsOptional, IsString, IsEnum } from 'class-validator';
 export class UpdateUserDto {
   @IsOptional()
@@ -13,9 +13,13 @@ export class UpdateUserDto {
     @IsOptional()
     @IsString()
     password?: string;
+    @IsString()
     @IsOptional()
-    @IsEnum(UserRole)
-    role?: UserRole;
+    telephone?: string;
+    @IsString()
+    @IsOptional()
+    profilePhotoUrl?: string 
+
 
 
     

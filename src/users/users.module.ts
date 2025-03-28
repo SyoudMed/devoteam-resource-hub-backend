@@ -6,6 +6,7 @@ import { User } from './entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 import { EngineerModule } from 'src/engineer/engineer.module';
 import { Engineer } from 'src/engineer/entities/engineer.entity';
+import { CloudinaryProvider } from 'cloudinary.config';
 
 
 @Module({
@@ -15,7 +16,7 @@ import { Engineer } from 'src/engineer/entities/engineer.entity';
     EngineerModule,
   ],
   controllers: [UsersController],
-  providers: [UsersService],
+  providers: [UsersService,CloudinaryProvider],
   exports: [UsersService],
 })
 export class UsersModule {}
