@@ -9,6 +9,7 @@ export class CommentController {
     constructor(private readonly commentService: CommentService) {}
 
     @Post('engineers/:engineerId')
+    @UseGuards(JwtAuthGuard)
     async addComment(
         @Param('engineerId', ParseIntPipe) engineerId: number,
         @Body('authorId') authorId: number,
@@ -18,6 +19,8 @@ export class CommentController {
         return this.commentService.addComment(engineerId, authorId, content, rating);
     }
 
+
+    @UseGuards(JwtAuthGuard)
     @Get('engineers/:engineerId')
     async getCommentsByEngineerId(@Param('engineerId', ParseIntPipe) engineerId: number) {
         return this.commentService.findCommentsByEngineerId(engineerId);

@@ -1,7 +1,12 @@
-import { UserRole } from 'src/common/enum/UserRole.enum';
-import { Engineer } from 'src/engineer/entities/engineer.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, JoinColumn, OneToOne } from 'typeorm';
 
+import { Engineer } from '../../engineer/entities/engineer.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
+
+export enum UserRole {
+  MANAGER = 'MANAGER',
+  INGENIEUR = 'INGENIEUR',
+  COMMERCIAL = 'COMMERCIAL',
+}
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -28,7 +33,7 @@ export class User {
   @CreateDateColumn()
   createdAt: Date;
 
-  @CreateDateColumn()
+  @UpdateDateColumn()
   updatedAt: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -46,10 +51,11 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
-
   @Column({ default: true })
-  isFirstLogin:boolean;
+  isFirstLogin: boolean;
 
   @Column({ type: 'varchar', nullable: true })
   profilePhotoUrl?: string | null;
+
+  
 }

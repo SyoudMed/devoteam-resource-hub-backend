@@ -9,7 +9,7 @@ const typeOrmConfig: TypeOrmModuleOptions = {
   username: 'root',
   password: '',
   database: 'devoteam_resources_hub',
-  entities: [User, Engineer], 
+  entities: ['src/**/*.entity{.ts,.js}'],
   synchronize: false,
   migrations: ['src/migrations/**/*.ts'],
 };

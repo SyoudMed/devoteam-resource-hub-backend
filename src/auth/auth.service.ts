@@ -25,7 +25,7 @@ export class AuthService {
 
   async authenticate(loginDto: LoginDto): Promise<AuthResult> {
     const user = await this.validateUser(loginDto) as User;
-    console.log("User object:", user);
+  
     
     if (!user) {
         throw new UnauthorizedException('Identifiants invalides');

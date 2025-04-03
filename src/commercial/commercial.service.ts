@@ -3,10 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { MailService } from 'src/auth/mail.service';
 import { UserRole } from 'src/common/enum/UserRole.enum';
+
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateUserDto } from 'src/users/dto/update-user.dto';
 import { User } from 'src/users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 
 
 @Injectable()
@@ -22,7 +23,7 @@ export class CommercialService {
 
     const existingUser = await this.userRepository.findOne({ where: { email:createUserDto.email } });
     if (existingUser) {
-      throw new BadRequestException('Email already exists');
+      throw new BadRequestException('Email déja existe');
     }
 
     
@@ -60,6 +61,32 @@ export class CommercialService {
   }
 
 
+
+  async findPaginated({ page, limit, search = '' }: PaginationParams): Promise<PaginatedResponse<User>> {
+    const skip = (page - 1) * limit;
+    const where: any = { role: UserRole.COMMERCIAL };
+  
+    if (search) {
+      where.firstName = Like(`%${search}%`);
+      where.lastName = Like(`%${search}%`);
+      where.email = Like(`%${search}%`);
+    }
+  
+    const [commercials, total] = await this.userRepository.findAndCount({
+      where,
+      skip,
+      take: limit,
+      order: { id: 'ASC' },
+    });
+  
+    return {
+      data: commercials,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+    };
+  }
   
 
   

@@ -20,19 +20,23 @@ export class MailService {
   }
 
   private loadTemplate(templateName: string, variables: Record<string, string>): string {
-    const templatePath = path.join(__dirname, 'templates', 'account-verification.html'); 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const basePath = isProduction 
+      ? path.join(__dirname, 'templates') 
+      : path.join(process.cwd(), 'src', 'auth', 'templates');
+    const templatePath = path.join(basePath, `${templateName}.html`);
     let template = fs.readFileSync(templatePath, "utf-8");
-
     for (const [key, value] of Object.entries(variables)) {
-      template = template.replace(new RegExp(`{{${key}}}`, "g"), value);
+      const regex = new RegExp(`\\$\\{${key}\\}`, "g");
+      template = template.replace(regex, value);
     }
 
     return template;
-  }
+}
+
 
   async sendResetPasswordEmail(email: string, resetPasswordCode: string): Promise<{ message: string }> {
     const resetLink = `http://localhost:5173/modifier-password?email=${encodeURIComponent(email)}`;
-
     const htmlContent = this.loadTemplate("reset-password", { resetPasswordCode, resetLink });
 
     const mailOptions = {
@@ -48,7 +52,6 @@ export class MailService {
 
   async sendAccountVerificationEmail(email: string, password: string, verificationCode: string): Promise<{ message: string }> {
     const verificationLink = `http://localhost:5173/verification?email=${encodeURIComponent(email)}`;
-
     const htmlContent = this.loadTemplate("account-verification", { email, password, verificationCode, verificationLink });
 
     const mailOptions = {

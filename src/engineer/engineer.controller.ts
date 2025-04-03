@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, ParseIntPipe, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, ParseIntPipe, Patch, Query } from '@nestjs/common';
 import { EngineerService } from './engineer.service';
 import { Engineer } from './entities/engineer.entity';
 
@@ -50,6 +50,26 @@ export class EngineerController {
   @UseGuards(JwtAuthGuard)
   async findEngineerById(@Param('id') id: string): Promise<Engineer> {
     return this.engineerService.findEngineerById(+id); 
+  }
+
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async getPaginatedEngineers(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
+    @Query('specialty') specialty?: string,
+  ): Promise<{ data: Engineer[]; total: number; page: number; totalPages: number; limit: number }> {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+
+    return this.engineerService.findPaginatedEngineers({
+      page: pageNum,
+      limit: limitNum,
+      search,
+      specialty,
+    });
   }
 
 

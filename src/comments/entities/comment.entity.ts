@@ -16,14 +16,15 @@ export class Comment {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   date: Date;
 
-  @ManyToOne(() => User, { nullable: false })
+  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'authorId' })
   author: User;
+
 
   @Column()
   authorId: number;
 
-  @ManyToOne(() => Engineer, (engineer) => engineer.comments, { nullable: false })
+  @ManyToOne(() => Engineer, (engineer) => engineer.comments, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'engineerId' })
   engineer: Engineer;
 

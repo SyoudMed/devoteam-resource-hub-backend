@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query } from '@nestjs/common';
 import { CommercialService } from './commercial.service';
 import { User } from 'src/users/entities/user.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
@@ -19,6 +19,18 @@ export class CommercialController {
   @Roles(UserRole.MANAGER) 
   async createCommercial(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.commercialService.createCommercial(createUserDto);  
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async findPaginated(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    return this.commercialService.findPaginated({ page: pageNum, limit: limitNum, search });
   }
 
   @Get('list')

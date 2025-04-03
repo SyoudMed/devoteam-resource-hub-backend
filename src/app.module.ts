@@ -10,19 +10,19 @@ import { Engineer } from './engineer/entities/engineer.entity';
 import { CommercialModule } from './commercial/commercial.module';
 import { CommentModule } from './comments/comment.module';
 import { Comment } from './comments/entities/comment.entity';
+import { ReservationModule } from './Reservations/reservation.module';
+import { OffreModule } from './clients/offre.module';
 
 @Module({
   imports: [
-    
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [jwtConfig],  
+      load: [jwtConfig],
       envFilePath: '.env',
     }),
 
-    
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule], 
+      imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         type: 'mysql',
         host: configService.get<string>('DATABASE_HOST'),
@@ -30,10 +30,12 @@ import { Comment } from './comments/entities/comment.entity';
         username: configService.get<string>('DATABASE_USER'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [User,Engineer,Comment], 
-        synchronize: true,
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: false,
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: true,
       }),
-      inject: [ConfigService], 
+      inject: [ConfigService],
     }),
 
     AuthModule,
@@ -41,9 +43,8 @@ import { Comment } from './comments/entities/comment.entity';
     EngineerModule,
     CommercialModule,
     CommentModule,
+    ReservationModule,
+    OffreModule,
   ],
 })
 export class AppModule {}
-
-
-
