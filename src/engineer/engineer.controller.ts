@@ -8,6 +8,7 @@ import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 
 
 @Controller('engineers')
@@ -47,9 +48,24 @@ export class EngineerController {
 }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  
   async findEngineerById(@Param('id') id: string): Promise<Engineer> {
     return this.engineerService.findEngineerById(+id); 
+  }
+
+
+  @Get("by-user/:userId")
+async getEngineerByUserId(@Param("userId", ParseIntPipe) userId: number) {
+  return this.engineerService.findEngineerByUserId(userId);
+}
+
+@Patch("profile/:id")
+  @UseGuards(JwtAuthGuard)
+  updateProfile(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateEngineerProfileDto: UpdateEngineerProfileDto,
+  ): Promise<Engineer> {
+    return this.engineerService.updateProfile(id, updateEngineerProfileDto);
   }
 
 

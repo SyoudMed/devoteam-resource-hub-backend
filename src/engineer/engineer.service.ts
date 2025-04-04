@@ -13,21 +13,9 @@ import { AvailabilityStatus } from 'src/common/enum/AvailabilityStatus.enum';
 import { MailService } from 'src/auth/mail.service';
 import * as bcrypt from 'bcryptjs';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 
-interface PaginationParams {
-  page: number;
-  limit: number;
-  search?: string;
-  specialty?: string;
-}
 
-interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  totalPages: number;
-  limit: number;
-}
 
 @Injectable()
 export class EngineerService {
@@ -166,5 +154,42 @@ export class EngineerService {
     await this.userRepository.delete(engineer.user.id);
     await this.engineerRepository.remove(engineer);
     return { message: `Ingénieur avec l'ID ${id} supprimé avec succès` };
+  }
+
+
+  
+
+  async updateProfile(id: number, updateEngineerProfileDto: UpdateEngineerProfileDto): Promise<Engineer> {
+    const engineer = await this.engineerRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
+    }
+
+    // Mise à jour des champs avec les données du DTO
+    Object.assign(engineer, {
+      poste: updateEngineerProfileDto.poste ?? engineer.poste,
+      totalExperienceYear: updateEngineerProfileDto.totalExperienceYear ?? engineer.totalExperienceYear,
+      languages: updateEngineerProfileDto.languages ?? engineer.languages,
+      skills: updateEngineerProfileDto.skills ?? engineer.skills,
+      formations: updateEngineerProfileDto.formations ?? engineer.formations,
+      experience: updateEngineerProfileDto.experience ?? engineer.experience,
+    });
+
+    return this.engineerRepository.save(engineer);
+  }
+
+  async findEngineerByUserId(userId: number): Promise<Engineer> {
+    const engineer = await this.engineerRepository.findOne({
+      where: { userId },
+      relations: ["user"],
+    });
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur avec l'userId ${userId} non trouvé`);
+    }
+    return engineer;
   }
 }

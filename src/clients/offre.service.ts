@@ -1,24 +1,33 @@
-// src/offres/offre.service.ts
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Offre, OffreStatus } from './entities/offre.entity';
 import { CreateOffreDto } from './dto/create-offre.dto';
 import { UpdateOffreDto } from './dto/update-offre.dto';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class OffreService {
   constructor(
     @InjectRepository(Offre)
-    private offreRepository: Repository<Offre>,
+    private readonly offreRepository: Repository<Offre>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
-  // Créer une nouvelle offre
   async create(createOffreDto: CreateOffreDto): Promise<Offre> {
+    const user = await this.userRepository.findOne({ where: { id: createOffreDto.createdById } });
+    if (!user) {
+      throw new Error('Utilisateur non trouvé');
+    }
+
     const offre = this.offreRepository.create({
       ...createOffreDto,
-      status:OffreStatus.EN_ATTENTE, 
+      status: OffreStatus.EN_ATTENTE,
+      createdBy: user, 
     });
+
     return this.offreRepository.save(offre);
   }
 
@@ -36,7 +45,7 @@ export class OffreService {
     return offre;
   }
 
- 
+
   async update(id: number, updateOffreDto: UpdateOffreDto): Promise<Offre> {
     const offre = await this.findOne(id);
     Object.assign(offre, updateOffreDto);

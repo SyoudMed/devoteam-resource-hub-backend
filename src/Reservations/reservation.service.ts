@@ -119,15 +119,9 @@ async getReservationsByCommercialId(commercialId: number): Promise<Reservation[]
     if (status === 'accepted' && engineer.disponibiliteStatus === AvailabilityStatus.UNAVAILABLE) {
       throw new BadRequestException(`Cet ingénieur est sous une mission.`);
     }
-
-    
-    if (status === 'rejected' && reservation.status !== 'rejected') {
-      engineer.reservationStatus = false; 
-      engineer.disponibiliteStatus = AvailabilityStatus.AVAILABLE; 
-    } else if (status === 'accepted' && engineer.disponibiliteStatus === AvailabilityStatus.AVAILABLE) {
+    else if (status === 'accepted' && engineer.disponibiliteStatus === AvailabilityStatus.AVAILABLE) {
       engineer.disponibiliteStatus = AvailabilityStatus.UNAVAILABLE; 
     }
-    await this.engineerRepository.save(engineer);
     reservation.status = status;
     return this.reservationRepository.save(reservation);
   }

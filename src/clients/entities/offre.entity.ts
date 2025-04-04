@@ -1,5 +1,5 @@
-
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 
 
 
@@ -48,6 +48,11 @@ export class Offre {
   @Column({ type: 'enum', enum: Speciality })
   requiredSpeciality: Speciality;
 
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'createdById' }) 
+  createdBy: User;
+
+  
   @Column({ type: 'json'}) 
   requiredSkills: string[];
 }

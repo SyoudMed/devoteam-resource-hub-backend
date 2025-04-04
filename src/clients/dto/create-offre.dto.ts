@@ -27,4 +27,8 @@ export class CreateOffreDto {
   @IsArray()
   @IsString({ each: true }) 
   requiredSkills?: string[];
+
+
+  @IsInt()
+  createdById?: number;
 }
