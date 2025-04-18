@@ -5,13 +5,17 @@ import { EngineerService } from './engineer.service';
 import { EngineerController } from './engineer.controller';
 import { User } from 'src/users/entities/user.entity';
 import { AuthModule } from 'src/auth/auth.module';
-import { MailService } from 'src/auth/mail.service';
+
+import { Experience } from '../experiences/entities/experience.entity';
+
+import { MailService } from 'src/mail/mail.service';
+import { ExperienceService } from 'src/experiences/experience.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Engineer,User]),
+    imports: [TypeOrmModule.forFeature([Engineer,User,Experience]),
     forwardRef(() => AuthModule),
 ],
-    providers: [EngineerService,MailService],
+    providers: [EngineerService,MailService,ExperienceService],
     controllers: [EngineerController],
     exports: [EngineerService],
 })

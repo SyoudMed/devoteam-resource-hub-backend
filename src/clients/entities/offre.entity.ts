@@ -1,12 +1,11 @@
+import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { User } from '../../users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 
 
 
 export enum OffreStatus {
   EN_COURS = 'en cours',
-  TERMINE = 'terminé',
-  ANNULE = 'annulé',
   EN_ATTENTE = 'en attente',
 }
 
@@ -52,7 +51,12 @@ export class Offre {
   @JoinColumn({ name: 'createdById' }) 
   createdBy: User;
 
-  
+  @Column({ nullable: false }) 
+  createdById: number;
+
   @Column({ type: 'json'}) 
   requiredSkills: string[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.offre)
+  reservations: Reservation[];
 }

@@ -18,8 +18,8 @@ export class CreateReservationDto {
   clientName: string;
 
   @IsString()
-  @IsOptional()
-  meetingPurpose?: string;
+  @IsNotEmpty()
+  meetingPurpose: string;
 
   @IsNumber()
   @IsNotEmpty()
@@ -28,4 +28,8 @@ export class CreateReservationDto {
   @IsNumber()
   @IsNotEmpty()
   commercialId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  offreId: number;
 }

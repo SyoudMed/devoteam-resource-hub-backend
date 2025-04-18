@@ -20,20 +20,20 @@ export class MailService {
   }
 
   private loadTemplate(templateName: string, variables: Record<string, string>): string {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const basePath = isProduction 
-      ? path.join(__dirname, 'templates') 
-      : path.join(process.cwd(), 'src', 'auth', 'templates');
+    const isProduction = process.env.NODE_ENV === "production";
+    const basePath = isProduction
+      ? path.join(__dirname, "templates")
+      : path.join(process.cwd(), "src", "mail", "templates");
     const templatePath = path.join(basePath, `${templateName}.html`);
     let template = fs.readFileSync(templatePath, "utf-8");
+
     for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`\\$\\{${key}\\}`, "g");
+      const regex = new RegExp(`\\\${${key}}`, "g"); 
       template = template.replace(regex, value);
     }
 
     return template;
-}
-
+  }
 
   async sendResetPasswordEmail(email: string, resetPasswordCode: string): Promise<{ message: string }> {
     const resetLink = `http://localhost:5173/modifier-password?email=${encodeURIComponent(email)}`;
@@ -50,14 +50,59 @@ export class MailService {
     return { message: `Email envoyé à ${email}` };
   }
 
-  async sendAccountVerificationEmail(email: string, password: string, verificationCode: string): Promise<{ message: string }> {
+  async sendAccountVerificationEmail(
+    email: string,
+    password: string, 
+    verificationCode: string
+  ): Promise<{ message: string }> {
     const verificationLink = `http://localhost:5173/verification?email=${encodeURIComponent(email)}`;
-    const htmlContent = this.loadTemplate("account-verification", { email, password, verificationCode, verificationLink });
+    const htmlContent = this.loadTemplate("account-verification", {
+      email,
+      password, 
+      verificationCode,
+      verificationLink,
+    });
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Vérification de votre compte",
+      html: htmlContent,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+    return { message: `Email envoyé à ${email}` };
+  }
+
+
+  async sendReservationNotificationEmail(
+    email: string,
+    details: {
+      engineerName: string;
+      startTime: string;
+      endTime: string;
+      duration: string;
+      clientName: string;
+      meetingPurpose: string;
+      offreTitle: string;
+      commercialName: string;
+    },
+): Promise<{ message: string }> {
+    const htmlContent = this.loadTemplate("reservation-notification", {
+      engineerName: details.engineerName,
+      startTime: details.startTime,
+      endTime: details.endTime,
+      duration: details.duration,
+      clientName: details.clientName,
+      meetingPurpose: details.meetingPurpose,
+      offreTitle: details.offreTitle,
+      commercialName: details.commercialName,
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Nouvelle réservation d\’entretien",
       html: htmlContent,
     };
 

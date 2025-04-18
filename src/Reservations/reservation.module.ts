@@ -5,13 +5,16 @@ import { ReservationController } from './reservation.controller';
 import { Reservation } from './entities/reservation.entity';
 import { Engineer } from '../engineer/entities/engineer.entity';
 import { User } from '../users/entities/user.entity';
+import { OffreService } from 'src/clients/offre.service';
+import { Offre } from 'src/clients/entities/offre.entity';
+import { MailService } from 'src/mail/mail.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Reservation, Engineer, User]), 
+    TypeOrmModule.forFeature([Reservation, Engineer, User,Offre]), 
   ],
   controllers: [ReservationController],
-  providers: [ReservationService],
+  providers: [ReservationService,OffreService,MailService],
   exports: [ReservationService],
 })
 export class ReservationModule {}

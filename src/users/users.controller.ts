@@ -10,6 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { FileInterceptor } from '@nestjs/platform-express'; 
 @Controller('users')
+
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -18,14 +19,12 @@ export class UsersController {
     return this.usersService.createUser(createUserDto);
   }
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER)
   async deleteUser(@Param('id') id: number) {
     return this.usersService.deleteUser(id);
   }
 
   @Get('list')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER)
   async findAll() {
     return this.usersService.findAll();
@@ -39,7 +38,6 @@ export class UsersController {
 
   @Post(':id/update-profile')
 @UseInterceptors(FileInterceptor('file'))
-@UseGuards(JwtAuthGuard)
 async updateProfile(
   @Param('id', ParseIntPipe) id: number,
   @Body() updateProfileDto: UpdateUserDto,
@@ -49,10 +47,8 @@ async updateProfile(
 }
 
   @Delete(':id/delete-photo')
-  @UseGuards(JwtAuthGuard)
   async deleteProfilePhoto(@Param('id', ParseIntPipe) userId: number): Promise<User> {
     return this.usersService.deleteProfilePhoto(userId);
   }
 
-  
 }

@@ -21,12 +21,10 @@ export class CommentService {
         if (!engineer) {
             throw new NotFoundException(`Ingénieur avec l'ID ${engineerId} non trouvé`);
         }
-
         const author = await this.userRepository.findOne({ where: { id: authorId } });
         if (!author) {
             throw new NotFoundException(`Utilisateur avec l'ID ${authorId} non trouvé`);
         }
-
         const comment = this.commentRepository.create({
             content,
             rating,

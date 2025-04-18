@@ -13,6 +13,8 @@ import { Comment } from './comments/entities/comment.entity';
 import { ReservationModule } from './Reservations/reservation.module';
 import { OffreModule } from './clients/offre.module';
 
+import { MailModule } from './mail/mail.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,10 +42,12 @@ import { OffreModule } from './clients/offre.module';
 
     AuthModule,
     UsersModule,
+    MailModule,
     EngineerModule,
     CommercialModule,
     CommentModule,
     ReservationModule,
+   
     OffreModule,
   ],
 })

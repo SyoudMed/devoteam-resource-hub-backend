@@ -1,5 +1,5 @@
 
-import { Engineer } from '../../engineer/entities/engineer.entity';
+
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
 
 export enum UserRole {

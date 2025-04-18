@@ -1,6 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Engineer } from '../../engineer/entities/engineer.entity';
+import { Offre } from '../../clients/entities/offre.entity';
+
 
 @Entity()
 export class Reservation {
@@ -28,8 +30,6 @@ export class Reservation {
     default: 'pending',
   })
   status: string;
-  
-
 
   @CreateDateColumn()
   createdAt: Date;
@@ -37,11 +37,17 @@ export class Reservation {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => Engineer, (engineer) => engineer.reservations)
-  @JoinColumn({ name: 'engineer_id' }) 
+  @ManyToOne(() => Engineer, (engineer) => engineer.reservations, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'engineer_id' })
   engineer: Engineer;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'commercial_id' }) 
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'commercial_id' })
   commercial: User;
+
+  @ManyToOne(() => Offre, (offre) => offre.reservations, { onDelete: 'CASCADE' }) 
+  @JoinColumn({ name: 'offre_id' })
+  offre: Offre;
+
+  
 }

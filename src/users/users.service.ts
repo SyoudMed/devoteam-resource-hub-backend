@@ -175,7 +175,6 @@ export class UsersService {
     }
     user.isFirstLogin = isFirstLogin;
     await this.usersRepository.save(user);
-    console.log(`Utilisateur ${userId} mis à jour, isFirstLogin: ${isFirstLogin}`);
   }
 
   async deleteProfilePhoto(userId: number): Promise<User> {

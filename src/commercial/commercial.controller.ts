@@ -10,19 +10,18 @@ import { UserRole } from 'src/common/enum/UserRole.enum';
 
 
 @Controller('commercials')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CommercialController {
   constructor(private readonly commercialService: CommercialService) {}
 
 
   @Post('create') 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER) 
   async createCommercial(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.commercialService.createCommercial(createUserDto);  
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   async findPaginated(
     @Query('page') page: string,
     @Query('limit') limit: string,
@@ -34,7 +33,6 @@ export class CommercialController {
   }
 
   @Get('list')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER)
   async getAll(): Promise<User[]> {
     return this.commercialService.getAllCommercials();
@@ -42,21 +40,17 @@ export class CommercialController {
 
 
   
+  @Put(':id')
+  async update(
+  @Param('id') id: number,
+  @Body() updateUserDto: UpdateUserDto): Promise<User> {
+      return this.commercialService.updateCommercial(id, updateUserDto);
+  }
 
   
-    @Put(':id')
-    @UseGuards(JwtAuthGuard)
-    async update(
-    @Param('id') id: number,
-    @Body() updateUserDto: UpdateUserDto,
-      ): Promise<User> {
-        return this.commercialService.updateCommercial(id, updateUserDto);
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.MANAGER)
-    @Delete(':id')
-    async remove(@Param('id') id: number): Promise<{ message: string }> {
-      return this.commercialService.deleteCommercial(id);
-    }
+  @Roles(UserRole.MANAGER)
+  @Delete(':id')
+  async remove(@Param('id') id: number): Promise<{ message: string }> {
+    return this.commercialService.deleteCommercial(id);
+  }
 }

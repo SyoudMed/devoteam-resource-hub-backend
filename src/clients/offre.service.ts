@@ -16,12 +16,12 @@ export class OffreService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+
   async create(createOffreDto: CreateOffreDto): Promise<Offre> {
     const user = await this.userRepository.findOne({ where: { id: createOffreDto.createdById } });
     if (!user) {
       throw new Error('Utilisateur non trouvé');
     }
-
     const offre = this.offreRepository.create({
       ...createOffreDto,
       status: OffreStatus.EN_ATTENTE,
@@ -31,12 +31,20 @@ export class OffreService {
     return this.offreRepository.save(offre);
   }
 
-  // Récupérer toutes les offres
+
   async findAll(): Promise<Offre[]> {
     return this.offreRepository.find();
   }
 
-  // Récupérer une offre par ID
+
+  async findAllPending(): Promise<Offre[]> {
+    return this.offreRepository.find({
+      where: { status: OffreStatus.EN_ATTENTE },
+      relations: ['createdBy'], 
+    });
+  }
+
+  
   async findOne(id: number): Promise<Offre> {
     const offre = await this.offreRepository.findOne({ where: { id } });
     if (!offre) {
@@ -47,7 +55,11 @@ export class OffreService {
 
 
   async update(id: number, updateOffreDto: UpdateOffreDto): Promise<Offre> {
-    const offre = await this.findOne(id);
+    const offre = await this.offreRepository.findOne({ where: { id } });
+
+    if (!offre) {
+      throw new NotFoundException(`Offre avec l'ID ${id} non trouvée`);
+    }
     Object.assign(offre, updateOffreDto);
     return this.offreRepository.save(offre);
   }

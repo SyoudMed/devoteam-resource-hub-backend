@@ -1,4 +1,3 @@
-// src/offres/offre.controller.ts
 import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { OffreService } from './offre.service';
 import { CreateOffreDto } from './dto/create-offre.dto';
@@ -25,6 +24,11 @@ export class OffreController {
   @Roles(UserRole.COMMERCIAL)
   async findAll(): Promise<Offre[]> {
     return this.offreService.findAll();
+  }
+
+  @Get('pending')
+  async findAllPending(): Promise<Offre[]> {
+    return this.offreService.findAllPending();
   }
 
   @Get(':id')

@@ -8,7 +8,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from 'src/users/users.module';
 import jwtConfig from './config/jwt.config';
 import { ConfigModule } from '@nestjs/config';
-import { MailService } from './mail.service';
+import { MailService } from 'src/mail/mail.service';
+
 
 
 @Module({

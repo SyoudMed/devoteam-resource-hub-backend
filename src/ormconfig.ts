@@ -1,5 +1,3 @@
-import { User } from './users/entities/user.entity';
-import { Engineer } from './engineer/entities/engineer.entity';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 const typeOrmConfig: TypeOrmModuleOptions = {
