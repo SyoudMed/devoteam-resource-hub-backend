@@ -1,8 +1,9 @@
 import { User } from '../../users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { Comment } from '../../comments/entities/comment.entity';
 import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { Experience } from '../../experiences/entities/experience.entity'; 
+import { Skill } from 'src/skills/entities/skill.entity';
 
 export enum AvailabilityStatus {
   AVAILABLE = 'available',
@@ -16,10 +17,7 @@ export enum Speciality {
   DATA = 'Data',
 }
 
-interface Skill {
-  category: string;
-  skills: string[];
-}
+
 
 @Entity()
 export class Engineer {
@@ -41,8 +39,13 @@ export class Engineer {
   @Column()
   poste: string;
 
-  @Column('json', { nullable: true })
-  skills: Skill[];
+  @ManyToMany(() => Skill, (skill) => skill.engineers, { cascade: true, eager: true })
+    @JoinTable()
+    skills: Skill[];
+
+
+
+ 
 
   @Column('json', { nullable: true })
   formations: string[];

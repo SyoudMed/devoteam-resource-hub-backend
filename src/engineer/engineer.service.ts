@@ -16,8 +16,8 @@ import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 import { v2 as cloudinary } from 'cloudinary';
 import { Experience } from 'src/experiences/entities/experience.entity';
 import { MailService } from 'src/mail/mail.service';
-
-
+import { Skill } from 'src/skills/entities/skill.entity';
+import { CreateEngineerDto } from './dto/create-engineer.dto';
 
 @Injectable()
 export class EngineerService {
@@ -28,10 +28,63 @@ export class EngineerService {
     private userRepository: Repository<User>,
     @InjectRepository(Experience)
     private experienceRepository: Repository<Experience>,
+    @InjectRepository(Skill)
+    private skillRepository: Repository<Skill>,
     private mailService: MailService,
   ) {}
 
+  async uploadEngineerFromCv(createEngineerDto: CreateEngineerDto) {
+    try {
+      const engineer = this.engineerRepository.create({
+        poste: createEngineerDto.position,
+        totalExperienceYear: createEngineerDto.total_experience_years,
+        languages: createEngineerDto.languages,
+        formations: createEngineerDto.trainings,
+        user: { id: 30 }, // à remplacer plus tard dynamiquement
+      });
 
+      // Associer les skills (Many-to-Many) à partir de noms normalisés
+      const skillEntities: Skill[] = [];
+      for (const skill of createEngineerDto.skills) {
+        let skillEntity = await this.skillRepository.findOne({
+          where: { skill_name: skill.normalized },
+        });
+
+        if (!skillEntity) {
+          skillEntity = this.skillRepository.create({
+            skill_name: skill.normalized,
+            original_name: skill.original,
+            category: skill.category,
+          });
+          await this.skillRepository.save(skillEntity);
+        }
+
+        skillEntities.push(skillEntity);
+      }
+
+      engineer.skills = skillEntities;
+      const savedEngineer = await this.engineerRepository.save(engineer);
+
+      for (const exp of createEngineerDto.experiences) {
+        const experience = this.experienceRepository.create({
+          entreprise: exp.company,
+          poste: exp.job_title,
+          periode: exp.period,
+          responsabilities: exp.responsibilities,
+          engineer: savedEngineer,
+        });
+        await this.experienceRepository.save(experience);
+      }
+
+      return {
+        message: 'Engineer created successfully from CV 🚀',
+        engineer: savedEngineer,
+      };
+    } catch (error) {
+      console.error('❌ Error in uploadEngineerFromCv:', error);
+      throw new BadRequestException("Erreur lors de l'enregistrement de l'ingénieur depuis CV");
+    }
+  }
 
   async create(createEngineerDto: CreateUserDto): Promise<Engineer> {
     const existingUser = await this.userRepository.findOne({
@@ -42,7 +95,6 @@ export class EngineerService {
     }
 
     const hashedPassword = await bcrypt.hash(createEngineerDto.password, 10);
-
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationCodeExpiration = Date.now() + 3600000;
 
@@ -71,7 +123,7 @@ export class EngineerService {
     try {
       await this.mailService.sendAccountVerificationEmail(
         createEngineerDto.email,
-        createEngineerDto.password, 
+        createEngineerDto.password,
         verificationCode,
       );
     } catch (error) {
@@ -86,7 +138,7 @@ export class EngineerService {
   async findEngineerById(id: number): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { id },
-      relations: ['user', 'experiences', 'comments'],
+      relations: ['user', 'experiences', 'skills', 'comments'],
     });
 
     if (!engineer) {
@@ -96,12 +148,10 @@ export class EngineerService {
     return engineer;
   }
 
-
-
   private async uploadCvToCloudinary(file: Express.Multer.File, engineerId: number): Promise<string> {
     try {
       const publicId = `engineer_${engineerId}_${Date.now()}.pptx`;
-      
+
       const result = await new Promise<any>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -111,27 +161,19 @@ export class EngineerService {
             overwrite: true,
           },
           (error, result) => {
-            if (error) {
-              console.error('Erreur Cloudinary:', error);
-              reject(error);
-            } else {
-              console.log('Upload Cloudinary réussi:', result);
-              resolve(result);
-            }
+            if (error) reject(error);
+            else resolve(result);
           },
         );
-        uploadStream.end(file.buffer); 
+        uploadStream.end(file.buffer);
       });
 
-    
       return result.secure_url;
     } catch (error) {
-      
-      throw new BadRequestException('Échec de l\'upload du CV vers Cloudinary');
+      throw new BadRequestException("Échec de l'upload du CV vers Cloudinary");
     }
   }
 
-  
   private extractPublicId(url: string): string | null {
     const parts = url.split('/');
     const fileName = parts.pop()?.split('.')[0];
@@ -139,14 +181,10 @@ export class EngineerService {
   }
 
   async uploadEngineerCv(id: number, file: Express.Multer.File): Promise<Engineer> {
-    
     const engineer = await this.engineerRepository.findOne({ where: { id } });
-    if (!engineer) {
-      throw new NotFoundException(`Ingénieur ${id} non trouvé`);
-    }
+    if (!engineer) throw new NotFoundException(`Ingénieur ${id} non trouvé`);
 
     if (!file.mimetype.includes('presentationml.presentation')) {
-      console.error('Type de fichier invalide:', file.mimetype);
       throw new BadRequestException('Seuls les fichiers PPTX sont acceptés');
     }
 
@@ -156,97 +194,93 @@ export class EngineerService {
 
     try {
       if (engineer.CvUrl) {
-        const publicId = this.extractPublicId(engineer.CvUrl)+".pptx";
+        const publicId = this.extractPublicId(engineer.CvUrl) + '.pptx';
         if (publicId) {
-      
-          await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' })
-            .catch((error) => console.error('Erreur lors de la suppression de l\'ancien CV:', error));
+          await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
         }
       }
 
       const cvUrl = await this.uploadCvToCloudinary(file, id);
-
       await this.engineerRepository.update(id, { CvUrl: cvUrl });
 
-      const updatedEngineer = await this.engineerRepository.findOneOrFail({ where: { id } });
-
-      return updatedEngineer;
+      return await this.engineerRepository.findOneOrFail({ where: { id } });
     } catch (error) {
       throw new BadRequestException(`Échec de l'upload: ${error.message}`);
     }
   }
 
+  // async updateProfile(id: number, dto: UpdateEngineerProfileDto): Promise<Engineer> {
+  //   const queryRunner = this.engineerRepository.manager.connection.createQueryRunner();
+  //   await queryRunner.connect();
+  //   await queryRunner.startTransaction();
 
-  async updateProfile(
-    id: number,
-    updateEngineerProfileDto: UpdateEngineerProfileDto,
-  ): Promise<Engineer> {
-    const queryRunner = this.engineerRepository.manager.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  //   try {
+  //     const engineer = await this.engineerRepository.findOne({
+  //       where: { id },
+  //       relations: ['user', 'experiences', 'skills'],
+  //     });
+  //     if (!engineer) throw new NotFoundException(`Ingénieur ${id} non trouvé`);
 
-    try {
-      const engineer = await this.engineerRepository.findOne({
-        where: { id },
-        relations: ['user', 'experiences'],
-      });
-    
-      if (!engineer) {
-        throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
-      }
-    
-      
-      engineer.poste = updateEngineerProfileDto.poste ?? engineer.poste;
-      engineer.totalExperienceYear = updateEngineerProfileDto.totalExperienceYear ?? engineer.totalExperienceYear;
-      engineer.languages =updateEngineerProfileDto.languages !== undefined && Array.isArray(updateEngineerProfileDto.languages)
-        ? updateEngineerProfileDto.languages
-        : engineer.languages || [];
-      engineer.skills = updateEngineerProfileDto.skills ?? engineer.skills;
-      engineer.formations = updateEngineerProfileDto.formations ?? engineer.formations;
-    
-      const updatedEngineer = await queryRunner.manager.save(Engineer, engineer);    
-      await queryRunner.manager.delete(Experience, { engineer: { id } });
-    
-      // Création des nouvelles expériences
-      if (updateEngineerProfileDto.experience && updateEngineerProfileDto.experience.length > 0) {
-        const newExperiences = updateEngineerProfileDto.experience.map((expDto) => {
-          return this.experienceRepository.create({
-            entreprise: expDto.entreprise,
-            poste: expDto.poste,
-            periode: expDto.periode,
-            responsabilities: expDto.responsabilities,
-            engineer: updatedEngineer,
-          });
-        });
-    
-        const savedExperiences = await queryRunner.manager.save(Experience, newExperiences);
-        updatedEngineer.experiences = savedExperiences;
-      }
-    
-      await queryRunner.commitTransaction();
-      return updatedEngineer;
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw new BadRequestException(`Erreur lors de la mise à jour du profil: ${error.message}`);
-    } 
-  }
-  
+  //     engineer.poste = dto.poste ?? engineer.poste;
+  //     engineer.totalExperienceYear = dto.totalExperienceYear ?? engineer.totalExperienceYear;
+  //     engineer.languages = Array.isArray(dto.languages) ? dto.languages : engineer.languages;
+  //     engineer.formations = dto.formations ?? engineer.formations;
+
+  //     if (dto.skills && dto.skills.length > 0) {
+  //       const updatedSkills = await Promise.all(dto.skills.map(async (skill) => {
+  //         let skillEntity = await this.skillRepository.findOne({ where: { skill_name: skill.normalized } });
+  //         if (!skillEntity) {
+  //           skillEntity = this.skillRepository.create({
+  //             skill_name: skill.normalized,
+  //             original_name: skill.original,
+  //             category: skill.category,
+  //           });
+  //           await this.skillRepository.save(skillEntity);
+  //         }
+  //         return skillEntity;
+  //       }));
+  //       engineer.skills = updatedSkills;
+  //     }
+
+  //     await queryRunner.manager.delete(Experience, { engineer: { id } });
+
+  //     if (dto.experience && dto.experience.length > 0) {
+  //       const newExperiences = dto.experience.map((expDto) =>
+  //         this.experienceRepository.create({
+  //           entreprise: expDto.entreprise,
+  //           poste: expDto.poste,
+  //           periode: expDto.periode,
+  //           responsabilities: expDto.responsabilities,
+  //           engineer,
+  //         })
+  //       );
+  //       await queryRunner.manager.save(Experience, newExperiences);
+  //     }
+
+  //     const updated = await queryRunner.manager.save(Engineer, engineer);
+  //     await queryRunner.commitTransaction();
+  //     return updated;
+  //   } catch (error) {
+  //     await queryRunner.rollbackTransaction();
+  //     throw new BadRequestException(`Erreur lors de la mise à jour du profil: ${error.message}`);
+  //   } finally {
+  //     await queryRunner.release();
+  //   }
+  // }
 
   async findAllEngineers(): Promise<Engineer[]> {
-    return this.engineerRepository.find({ relations: ['user', 'experiences'] });
+    return this.engineerRepository.find({ relations: ['user', 'experiences', 'skills'] });
   }
-
-
 
   async findPaginatedEngineers({
     page,
     limit,
     search = '',
     specialty = '',
-  }: PaginationParams): Promise<PaginatedResponse<Engineer>> {
+  }: any): Promise<any> {
     const skip = (page - 1) * limit;
-
     const whereClause: any = {};
+
     if (search) {
       whereClause.user = [
         { firstName: Like(`%${search}%`) },
@@ -254,43 +288,35 @@ export class EngineerService {
         { email: Like(`%${search}%`) },
       ];
     }
+
     if (specialty) {
       whereClause.speciality = specialty;
     }
 
-    try {
-      const [engineers, total] = await this.engineerRepository.findAndCount({
-        where: whereClause,
-        relations: ['user', 'experiences'],
-        skip,
-        take: limit,
-        order: { id: 'ASC' },
-      });
+    const [engineers, total] = await this.engineerRepository.findAndCount({
+      where: whereClause,
+      relations: ['user', 'experiences', 'skills'],
+      skip,
+      take: limit,
+      order: { id: 'ASC' },
+    });
 
-      return {
-        data: engineers,
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
-        limit,
-      };
-    } catch (error) {
-      throw new BadRequestException('Erreur lors de la récupération des ingénieurs paginés');
-    }
+    return {
+      data: engineers,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+    };
   }
-  
 
-  async updateAvailability(id: number, updateAvailabilityDto: UpdateAvailabilityDto): Promise<Engineer> {
+  async updateAvailability(id: number, dto: UpdateAvailabilityDto): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { id },
       relations: ['user'],
     });
-
-    if (!engineer) {
-      throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
-    }
-
-    engineer.disponibiliteStatus = updateAvailabilityDto.disponibiliteStatus;
+    if (!engineer) throw new NotFoundException(`Ingénieur ${id} non trouvé`);
+    engineer.disponibiliteStatus = dto.disponibiliteStatus;
     return this.engineerRepository.save(engineer);
   }
 
@@ -299,59 +325,38 @@ export class EngineerService {
       where: { id },
       relations: ['user'],
     });
-
-    if (!engineer) {
-      throw new NotFoundException('Ingénieur non trouvé');
-    }
-
+    if (!engineer) throw new NotFoundException('Ingénieur non trouvé');
     await this.userRepository.delete(engineer.user.id);
     await this.engineerRepository.remove(engineer);
     return { message: `Ingénieur avec l'ID ${id} supprimé avec succès` };
   }
 
-  
   async findEngineerByUserId(userId: number): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { user: { id: userId } },
-      relations: ['user', 'experiences'],
+      relations: ['user', 'experiences', 'skills'],
     });
-    if (!engineer) {
-      throw new NotFoundException(`Ingénieur avec l'userId ${userId} non trouvé`);
-    }
+    if (!engineer) throw new NotFoundException(`Ingénieur avec l'userId ${userId} non trouvé`);
     return engineer;
   }
 
   async getTotalEngineersCount(): Promise<number> {
     try {
-      const count = await this.engineerRepository.count();
-      return count;
+      return await this.engineerRepository.count();
     } catch (error) {
-      throw new BadRequestException(
-        'Erreur lors de la récupération du nombre total d\'ingénieurs',
-      );
+      throw new BadRequestException('Erreur lors du comptage des ingénieurs');
     }
   }
-  
+
   async getAvailabilityCounts(): Promise<{ available: number; unavailable: number }> {
     try {
-      const [availableCount, unavailableCount] = await Promise.all([
-        this.engineerRepository.count({
-          where: { disponibiliteStatus: AvailabilityStatus.AVAILABLE },
-        }),
-        this.engineerRepository.count({
-          where: { disponibiliteStatus: AvailabilityStatus.UNAVAILABLE },
-        }),
+      const [available, unavailable] = await Promise.all([
+        this.engineerRepository.count({ where: { disponibiliteStatus: AvailabilityStatus.AVAILABLE } }),
+        this.engineerRepository.count({ where: { disponibiliteStatus: AvailabilityStatus.UNAVAILABLE } }),
       ]);
-
-      return {
-        available: availableCount,
-        unavailable: unavailableCount,
-      };
+      return { available, unavailable };
     } catch (error) {
-      throw new BadRequestException(
-        'Erreur lors de la récupération des comptes de disponibilité des ingénieurs',
-      );
+      throw new BadRequestException('Erreur lors du comptage des disponibilités');
     }
   }
-
 }

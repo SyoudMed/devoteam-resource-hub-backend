@@ -10,11 +10,19 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
+import { CreateEngineerDto } from './dto/create-engineer.dto';
 
 @Controller('engineers')
 
 export class EngineerController {
   constructor(private readonly engineerService: EngineerService) {}
+
+  @Post('upload-from-cv')
+  async uploadEngineerFromCv(@Body() createEngineerDto: CreateEngineerDto) {
+    console.log("📥 Reçu upload-from-cv :", createEngineerDto);
+    return this.engineerService.uploadEngineerFromCv(createEngineerDto);
+  }
+
 
   // Lister tous les ingénieurs
   @Get('listengineer')
@@ -59,13 +67,13 @@ export class EngineerController {
     return this.engineerService.findEngineerByUserId(userId);
 }
   // Mettre à jour le profil d’un ingénieur avec fichier CV optionnel
-  @Patch('profile/:id')
-  async updateProfile(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateEngineerProfileDto: UpdateEngineerProfileDto,
-  ): Promise<Engineer> {
-    return this.engineerService.updateProfile(id, updateEngineerProfileDto);
-  }
+  // @Patch('profile/:id')
+  // async updateProfile(
+  //   @Param('id', ParseIntPipe) id: number,
+  //   @Body() updateEngineerProfileDto: UpdateEngineerProfileDto,
+  // ): Promise<Engineer> {
+  //   return this.engineerService.updateProfile(id, updateEngineerProfileDto);
+  // }
 
   // Uploader un CV 
   @Post(':id/cv')
