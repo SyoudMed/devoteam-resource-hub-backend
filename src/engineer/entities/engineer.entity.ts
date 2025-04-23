@@ -1,8 +1,10 @@
 import { User } from '../../users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { Comment } from '../../comments/entities/comment.entity';
 import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { Experience } from '../../experiences/entities/experience.entity'; 
+import { Skills } from '../../skills/entities/skill.entity';
+
 
 export enum AvailabilityStatus {
   AVAILABLE = 'available',
@@ -16,10 +18,7 @@ export enum Speciality {
   DATA = 'Data',
 }
 
-interface Skill {
-  category: string;
-  skills: string[];
-}
+
 
 @Entity()
 export class Engineer {
@@ -41,8 +40,28 @@ export class Engineer {
   @Column()
   poste: string;
 
-  @Column('json', { nullable: true })
-  skills: Skill[];
+  @ManyToMany(() => Skills, (skill) => skill.engineers, {
+    cascade: ['insert', 'update'],
+    eager: true,
+  })
+  @JoinTable({
+    name: 'engineer_skills',
+    joinColumn: {
+      name: 'engineer_id', 
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'skill_id',
+      referencedColumnName: 'id',
+    },
+  })
+  skills: Skills[];
+  
+  
+
+
+
+ 
 
   @Column('json', { nullable: true })
   formations: string[];

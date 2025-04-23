@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, In } from 'typeorm';
 import { Engineer } from './entities/engineer.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
@@ -16,6 +16,8 @@ import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 import { v2 as cloudinary } from 'cloudinary';
 import { Experience } from 'src/experiences/entities/experience.entity';
 import { MailService } from 'src/mail/mail.service';
+import { Skills } from 'src/skills/entities/skill.entity';
+import { CreateEngineerDto } from './dto/create-engineer.dto';
 
 
 
@@ -29,7 +31,12 @@ export class EngineerService {
     @InjectRepository(Experience)
     private experienceRepository: Repository<Experience>,
     private mailService: MailService,
+    @InjectRepository(Skills)
+    private skillRepository: Repository<Skills>,
   ) {}
+
+
+ 
 
 
 
@@ -115,7 +122,6 @@ export class EngineerService {
               console.error('Erreur Cloudinary:', error);
               reject(error);
             } else {
-              console.log('Upload Cloudinary réussi:', result);
               resolve(result);
             }
           },
@@ -186,50 +192,121 @@ export class EngineerService {
     await queryRunner.startTransaction();
 
     try {
-      const engineer = await this.engineerRepository.findOne({
+      const engineerRepository = queryRunner.manager.getRepository(Engineer);
+      const skillRepository = queryRunner.manager.getRepository(Skills);
+      const experienceRepository = queryRunner.manager.getRepository(Experience);
+
+      // Récupérer l'ingénieur avec ses relations
+      const engineer = await engineerRepository.findOne({
         where: { id },
-        relations: ['user', 'experiences'],
+        relations: ['user', 'experiences', 'skills'],
       });
-    
+
       if (!engineer) {
         throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
       }
-    
-      
+
+      // Mise à jour des champs simples
       engineer.poste = updateEngineerProfileDto.poste ?? engineer.poste;
       engineer.totalExperienceYear = updateEngineerProfileDto.totalExperienceYear ?? engineer.totalExperienceYear;
-      engineer.languages =updateEngineerProfileDto.languages !== undefined && Array.isArray(updateEngineerProfileDto.languages)
+      engineer.languages = Array.isArray(updateEngineerProfileDto.languages)
         ? updateEngineerProfileDto.languages
         : engineer.languages || [];
-      engineer.skills = updateEngineerProfileDto.skills ?? engineer.skills;
       engineer.formations = updateEngineerProfileDto.formations ?? engineer.formations;
-    
-      const updatedEngineer = await queryRunner.manager.save(Engineer, engineer);    
+
+      // Associer les compétences (Many-to-Many)
+      if (Array.isArray(updateEngineerProfileDto.skills)) {
+        const skillEntities: Skills[] = [];
+
+        for (const skillGroup of updateEngineerProfileDto.skills) {
+          const { category, skills } = skillGroup;
+
+          if (!category || !Array.isArray(skills) || skills.length === 0) {
+            console.warn(`Groupe de compétences invalide: category=${category}, skills=${JSON.stringify(skills)}`);
+            continue;
+          }
+
+          for (const skillName of skills) {
+            if (!skillName || typeof skillName !== 'string' || skillName.trim() === '') {
+              console.warn(`Compétence invalide: ${skillName}`);
+              continue;
+            }
+
+
+            let skillEntity: Skills | null = await skillRepository.findOne({
+              where: { skill_name: skillName.trim(), category: category.trim() },
+            });
+
+            if (!skillEntity) {
+              skillEntity = skillRepository.create({
+                skill_name: skillName.trim(),
+                original_name: skillName.trim(), 
+                category: category.trim(),
+              });
+              skillEntity = await skillRepository.save(skillEntity);
+            } 
+
+            if (!skillEntities.some((entity) => entity.id === skillEntity!.id)) {
+              skillEntities.push(skillEntity);
+            }
+          }
+        }
+
+        // Supprimer les relations existantes dans engineer_skills
+        const deleteResult = await queryRunner.manager
+          .createQueryBuilder()
+          .delete()
+          .from('engineer_skills') 
+          .where('engineer_id = :id', { id }) 
+          .execute();
+
+        // Vérifier que la table est vide pour cet ingénieur
+        const currentRelations = await queryRunner.manager
+          .createQueryBuilder()
+          .select()
+          .from('engineer_skills', 'relation')
+          .where('relation.engineer_id = :id', { id })
+          .getRawMany();
+        if (currentRelations.length > 0) {
+          console.error(`Relations non supprimées:`, currentRelations);
+          throw new Error('Échec de la suppression des relations existantes');
+        }
+
+        engineer.skills = skillEntities;
+      }
+
+      // Enregistrer les modifications de l'ingénieur
+      const updatedEngineer = await engineerRepository.save(engineer, { transaction: false });
+
+      // Supprimer les anciennes expériences
       await queryRunner.manager.delete(Experience, { engineer: { id } });
-    
-      // Création des nouvelles expériences
-      if (updateEngineerProfileDto.experience && updateEngineerProfileDto.experience.length > 0) {
-        const newExperiences = updateEngineerProfileDto.experience.map((expDto) => {
-          return this.experienceRepository.create({
-            entreprise: expDto.entreprise,
-            poste: expDto.poste,
-            periode: expDto.periode,
-            responsabilities: expDto.responsabilities,
+
+      // Ajouter les nouvelles expériences
+      if (Array.isArray(updateEngineerProfileDto.experience) && updateEngineerProfileDto.experience.length > 0) {
+        for (const exp of updateEngineerProfileDto.experience) {
+          const experience = experienceRepository.create({
+            entreprise: exp.entreprise,
+            poste: exp.poste,
+            periode: exp.periode,
+            responsabilities: exp.responsabilities,
             engineer: updatedEngineer,
           });
-        });
-    
-        const savedExperiences = await queryRunner.manager.save(Experience, newExperiences);
-        updatedEngineer.experiences = savedExperiences;
+          await experienceRepository.save(experience);
+
+        }
       }
-    
+
       await queryRunner.commitTransaction();
       return updatedEngineer;
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      console.error(' Erreur lors de la mise à jour du profil:', error);
       throw new BadRequestException(`Erreur lors de la mise à jour du profil: ${error.message}`);
-    } 
+    } finally {
+      await queryRunner.release();
+    }
   }
+  
   
 
   async findAllEngineers(): Promise<Engineer[]> {

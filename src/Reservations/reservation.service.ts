@@ -274,7 +274,7 @@ async findOne(id: number): Promise<Reservation> {
       }
 
       engineer.disponibiliteStatus = AvailabilityStatus.UNAVAILABLE;
-      offre.status = OffreStatus.EN_COURS;
+      offre.status = OffreStatus.ACCEPTER;
       reservation.status = status;
       await this.offreRepository.save(offre);
       await this.reservationRepository.save(reservation); 
@@ -327,6 +327,27 @@ async findOne(id: number): Promise<Reservation> {
     }
   }
 
+
+  async getPendingReservationsByEngineerId(engineerId: number): Promise<Reservation[]> {
+    const engineer = await this.engineerRepository.findOne({ 
+      where: { id: engineerId }
+    });
+    
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur avec l'ID ${engineerId} non trouvé`);
+    }
+  
+    const reservations = await this.reservationRepository.find({
+      where: { 
+        engineer: { id: engineerId },
+        status: 'pending'
+      },
+      relations: ['engineer', 'engineer.user', 'commercial', 'offre'],
+      order: { startTime: 'ASC' },
+    });
+  
+    return reservations;
+  }
 
   
 }

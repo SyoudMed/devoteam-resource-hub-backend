@@ -10,11 +10,15 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
+import { CreateEngineerDto } from './dto/create-engineer.dto';
 
 @Controller('engineers')
-
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class EngineerController {
   constructor(private readonly engineerService: EngineerService) {}
+
+
+  
 
   // Lister tous les ingénieurs
   @Get('listengineer')
@@ -55,10 +59,9 @@ export class EngineerController {
   // Récupérer un ingénieur par userId
   @Get("by-user/:userId")
   async getEngineerByUserId(@Param("userId", ParseIntPipe) userId: number) {
-    console.log(`Appel de getEngineerByUserId avec userId: ${userId}`);
     return this.engineerService.findEngineerByUserId(userId);
 }
-  // Mettre à jour le profil d’un ingénieur avec fichier CV optionnel
+  // Mettre à jour le profil d’un ingénieur
   @Patch('profile/:id')
   async updateProfile(
     @Param('id', ParseIntPipe) id: number,
@@ -100,15 +103,6 @@ export class EngineerController {
   }
 
 
-  
-  
-
- /* @Get('stats/count')
-async getEngineersCount() {
-  return {
-    total: await this.engineerService.getTotalEngineersCount(),
-  };
-}*/
 @Get('stats/count')
   async getEngineerStats() {
     const [total, availabilityCounts] = await Promise.all([
@@ -125,7 +119,6 @@ async getEngineersCount() {
   
 
   @Get('stats/availability-count')
-  
   async getAvailabilityCounts(): Promise<{ available: number; unavailable: number }> {
     return this.engineerService.getAvailabilityCounts();
   }

@@ -109,6 +109,4 @@ export class CommercialService {
     return response;
   }
 
-
-
 }

@@ -4,9 +4,10 @@ import { PaginationParams, PaginatedResponse } from './dto/pagination-params.dto
 import { Reservation } from './entities/reservation.entity';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('reservations')
-
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ReservationController {
   constructor(private readonly reservationService: ReservationService) {}
 
@@ -16,8 +17,8 @@ export class ReservationController {
     return this.reservationService.create(createReservationDto);
   }
 
+
   @Get('commercial/:commercialId')
-  
   async getReservationsByCommercialId(
     @Param('commercialId', ParseIntPipe) commercialId: number,
   ): Promise<Reservation[]> {
@@ -69,6 +70,8 @@ export class ReservationController {
     return this.reservationService.findPaginatedCommercialReservations(paginationParams);
   }
 
+  
+
   @Get('paginated')
   async getPaginatedReservations(
     @Query('page') page = 1,
@@ -89,4 +92,14 @@ export class ReservationController {
   async getReservationStatusCounts(): Promise<{ pending: number; accepted: number; rejected: number }> {
     return this.reservationService.getReservationStatusCounts();
   }
+
+
+  @Get('engineer/:engineerId/pending')
+  async getPendingReservationsByEngineerId(
+    @Param('engineerId', ParseIntPipe) engineerId: number,
+  ): Promise<Reservation[]> {
+    return this.reservationService.getPendingReservationsByEngineerId(engineerId);
+  }
+
+
 }

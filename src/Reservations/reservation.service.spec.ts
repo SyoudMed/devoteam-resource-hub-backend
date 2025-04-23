@@ -17,16 +17,16 @@ describe('ReservationService Integration Test', () => {
       imports: [
         
         TypeOrmModule.forRoot({
-                  type: 'mysql',
-                  host: 'localhost',
-                  port: 3306,
-                  username: 'root',
-                  password: '',
-                  database: 'devoteam_resources_hub',
-                  entities: [User, Engineer, Offre, Reservation, Comment, Experience],
-                  synchronize: false,
-                }),
-                TypeOrmModule.forFeature([User, Engineer, Offre, Reservation, Comment, Experience]),
+            type: 'mysql',
+            host: 'localhost',
+            port: 3306,
+            username: 'root',
+            password: '',
+            database: 'devoteam_resources_hub',
+            entities: [User, Engineer, Offre, Reservation, Comment, Experience],
+            synchronize: false,
+            }),
+        TypeOrmModule.forFeature([User, Engineer, Offre, Reservation, Comment, Experience]),
       ],
       providers: [
         ReservationService,

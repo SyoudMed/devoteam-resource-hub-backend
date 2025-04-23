@@ -2,13 +2,10 @@ import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { User } from '../../users/entities/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 
-
-
 export enum OffreStatus {
-  EN_COURS = 'en cours',
+  ACCEPTER = 'accepter',
   EN_ATTENTE = 'en attente',
 }
-
 
 export enum Speciality {
   DEVELOPER = 'Developer',
