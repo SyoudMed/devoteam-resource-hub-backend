@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 import { Engineer } from 'src/engineer/entities/engineer.entity';
 
-@Entity('skill') // explicitly match the table name in your DB
+@Entity('skill')
 export class Skills {
   @PrimaryGeneratedColumn()
   id: number;

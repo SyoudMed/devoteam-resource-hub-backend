@@ -51,7 +51,7 @@ export class Engineer {
     eager: true,
   })
   @JoinTable({
-    name: 'engineer_skills_skill',
+    name: 'engineer_skills_skill', 
     joinColumn: {
       name: 'engineerId',
       referencedColumnName: 'id',
@@ -62,6 +62,7 @@ export class Engineer {
     },
   })
   skills: Skills[];
+  
 
   @Column('json', { nullable: true })
   formations: string[];
