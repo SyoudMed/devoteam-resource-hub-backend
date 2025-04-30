@@ -9,8 +9,9 @@ import { Reservation } from '../Reservations/entities/reservation.entity';
 import { Offre } from '../clients/entities/offre.entity';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException } from '@nestjs/common';
-import { Skill } from 'src/skills/entities/skill.entity';
-import { OffreSkill } from 'src/clients/entities/offre-skill.entity';
+import { Skill } from '../skills/entities/skill.entity';
+import { OffreSkill } from '../clients/entities/offre-skill.entity';
+
 //badlet el esm mtaa el bd
 jest.setTimeout(30000); // Avoid CI timeout
 
