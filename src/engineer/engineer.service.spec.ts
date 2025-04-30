@@ -9,6 +9,8 @@ import { Reservation } from '../Reservations/entities/reservation.entity';
 import { Offre } from '../clients/entities/offre.entity';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException } from '@nestjs/common';
+//badlet el esm mtaa el bd
+jest.setTimeout(30000); // Avoid CI timeout
 
 describe('EngineerService - findPaginatedEngineers', () => {
   let service: EngineerService;
@@ -27,9 +29,9 @@ describe('EngineerService - findPaginatedEngineers', () => {
           port: 3306,
           username: 'root',
           password: '',
-          database: 'devoteam_resources_hub',
+          database: 'test_devoteam_resources_hub', // ✅ MATCH THE CI DB
           entities: [Engineer, User, Experience, Comment, Reservation, Offre],
-          synchronize: false,
+          synchronize: true, // Optional: helps in CI
         }),
         TypeOrmModule.forFeature([Engineer, User, Experience, Comment, Reservation, Offre]),
       ],
@@ -40,7 +42,7 @@ describe('EngineerService - findPaginatedEngineers', () => {
     }).compile();
 
     service = module.get<EngineerService>(EngineerService);
-  }, 10000); 
+  });
 
   afterAll(async () => {
     if (module) {
@@ -71,7 +73,6 @@ describe('EngineerService - findPaginatedEngineers', () => {
       expect(result).toHaveProperty('totalPages');
       expect(typeof result.totalPages).toBe('number');
 
-      // Vérifier la structure si des ingénieurs sont retournés
       if (result.data.length > 0) {
         expect(result.data[0]).toHaveProperty('user');
       }
