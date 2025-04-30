@@ -16,7 +16,7 @@ import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 import { v2 as cloudinary } from 'cloudinary';
 import { Experience } from 'src/experiences/entities/experience.entity';
 import { MailService } from 'src/mail/mail.service';
-import { Skill } from 'src/skills/entities/skill.entity';
+import { Skills } from 'src/skills/entities/skill.entity';
 import { CreateEngineerDto } from './dto/create-engineer.dto';
 
 @Injectable()
@@ -28,8 +28,8 @@ export class EngineerService {
     private userRepository: Repository<User>,
     @InjectRepository(Experience)
     private experienceRepository: Repository<Experience>,
-    @InjectRepository(Skill)
-    private skillRepository: Repository<Skill>,
+    @InjectRepository(Skills)
+    private skillRepository: Repository<Skills>,
     private mailService: MailService,
   ) {}
 
@@ -47,7 +47,7 @@ export class EngineerService {
       const savedEngineer = await this.engineerRepository.save(engineer);
   
       
-      const skillEntities: Skill[] = [];
+      const skillEntities: Skills[] = [];
   
       for (const skill of createEngineerDto.skills) {
         let skillEntity = await this.skillRepository.findOne({
@@ -279,43 +279,51 @@ export class EngineerService {
     return this.engineerRepository.find({ relations: ['user', 'experiences', 'skills'] });
   }
 
-  async findPaginatedEngineers({
-    page,
-    limit,
-    search = '',
-    specialty = '',
-  }: any): Promise<any> {
+  async findPaginatedEngineers(query: {
+    page: number;
+    limit: number;
+    search?: string;
+    specialty?: string;
+  }) {
+    const { page, limit, search, specialty } = query;
+  
+    // ✅ Add this validation to prevent SQL syntax error
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Page and limit must be at least 1');
+    }
+  
     const skip = (page - 1) * limit;
-    const whereClause: any = {};
-
+  
+    const qb = this.engineerRepository
+      .createQueryBuilder('engineer')
+      .leftJoinAndSelect('engineer.user', 'user')
+      .leftJoinAndSelect('engineer.experiences', 'experience')
+      .leftJoinAndSelect('engineer.skills', 'skills')
+      .leftJoinAndSelect('engineer.reservations', 'reservations')
+      .leftJoinAndSelect('engineer.comments', 'comments');
+  
     if (search) {
-      whereClause.user = [
-        { firstName: Like(`%${search}%`) },
-        { lastName: Like(`%${search}%`) },
-        { email: Like(`%${search}%`) },
-      ];
+      qb.andWhere(
+        '(user.email LIKE :search OR user.nom LIKE :search OR user.prenom LIKE :search)',
+        { search: `%${search}%` },
+      );
     }
-
+  
     if (specialty) {
-      whereClause.speciality = specialty;
+      qb.andWhere('engineer.speciality = :specialty', { specialty });
     }
-
-    const [engineers, total] = await this.engineerRepository.findAndCount({
-      where: whereClause,
-      relations: ['user', 'experiences', 'skills'],
-      skip,
-      take: limit,
-      order: { id: 'ASC' },
-    });
-
+  
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
+  
     return {
-      data: engineers,
+      data,
       total,
       page,
-      totalPages: Math.ceil(total / limit),
       limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
+  
 
   async updateAvailability(id: number, dto: UpdateAvailabilityDto): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({

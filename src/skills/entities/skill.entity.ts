@@ -1,8 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany } from 'typeorm';
-import { Engineer } from '../../engineer/entities/engineer.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
+import { Engineer } from 'src/engineer/entities/engineer.entity';
 
-@Entity()
-export class Skill {
+@Entity('skill') // explicitly match the table name in your DB
+export class Skills {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -16,7 +16,5 @@ export class Skill {
   category: string;
 
   @ManyToMany(() => Engineer, (engineer) => engineer.skills)
-engineers: Engineer[];
-
-
+  engineers: Engineer[];
 }

@@ -9,7 +9,7 @@ import { Reservation } from '../Reservations/entities/reservation.entity';
 import { Offre } from '../clients/entities/offre.entity';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException } from '@nestjs/common';
-import { Skill } from '../skills/entities/skill.entity';
+import { Skills } from 'src/skills/entities/skill.entity';
 import { OffreSkill } from '../clients/entities/offre-skill.entity';
 
 //badlet el esm mtaa el bd
@@ -41,8 +41,9 @@ describe('EngineerService - findPaginatedEngineers', () => {
             Comment,
             Reservation,
             Offre,
-            Skill,
-            OffreSkill
+            Skills,
+            OffreSkill,
+           
           ],
         }),
         TypeOrmModule.forFeature([
@@ -52,8 +53,9 @@ describe('EngineerService - findPaginatedEngineers', () => {
           Comment,
           Reservation,
           Offre,
-          Skill, 
-          OffreSkill
+          Skills, 
+          OffreSkill,
+          
         ]),
       ],
       
@@ -75,7 +77,7 @@ describe('EngineerService - findPaginatedEngineers', () => {
   describe('findPaginatedEngineers', () => {
     it('should return paginated engineers with no filters', async () => {
       const result = await service.findPaginatedEngineers({
-        page: 0,
+        page: 1,
         limit: 10,
         search: 'ali@example.com',
         specialty: '',
