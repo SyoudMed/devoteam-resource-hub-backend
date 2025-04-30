@@ -38,7 +38,7 @@ jobs:
           echo "DATABASE_HOST=localhost" >> .env
           echo "DATABASE_PORT=3306" >> .env
           echo "DATABASE_USER=root" >> .env
-          echo "DATABASE_PASSWORD=root" >> .env
+          echo "DATABASE_PASSWORD=root" >> .env   # only in CI
           echo "DATABASE_NAME=devoteam_resources_hub" >> .env
 
       - name: Install Dependencies
