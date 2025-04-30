@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsArray, ValidateNested, IsEnum } from 'class-validator';
+import { IsString, IsInt, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ExperienceDto {
@@ -16,22 +16,16 @@ class ExperienceDto {
 }
 
 class SkillDto {
-  @IsString()
-  original: string;
-
-  @IsString()
-  normalized: string;
-
-  @IsString()
-  category: string;
-}
-
-export enum Speciality {
-  DEVELOPER = 'Developer',
-  DEVOPS = 'DevOps',
-  CYBER_SECURITY = 'Cyber Security',
-  DATA = 'Data',
-}
+    @IsString()
+    original: string;
+  
+    @IsString()
+    normalized: string;
+  
+    @IsString()
+    category: string;
+  }
+  
 
 export class CreateEngineerDto {
   @IsString()
@@ -39,9 +33,6 @@ export class CreateEngineerDto {
 
   @IsInt()
   total_experience_years: number;
-
-  @IsEnum(Speciality)
-  speciality: Speciality;
 
   @IsArray()
   languages: string[];
@@ -55,7 +46,8 @@ export class CreateEngineerDto {
   experiences: ExperienceDto[];
 
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SkillDto)
-  skills: SkillDto[];
+@ValidateNested({ each: true })
+@Type(() => SkillDto)
+skills: SkillDto[];
+
 }
