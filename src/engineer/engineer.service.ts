@@ -41,12 +41,12 @@ export class EngineerService {
         speciality: createEngineerDto.speciality, 
         languages: createEngineerDto.languages,
         formations: createEngineerDto.trainings,
-        user: { id: 26 }, 
+        user: { id: 19 }, 
       });
   
       const savedEngineer = await this.engineerRepository.save(engineer);
   
-      // Now handle skills (many-to-many)
+      
       const skillEntities: Skill[] = [];
   
       for (const skill of createEngineerDto.skills) {
@@ -66,11 +66,11 @@ export class EngineerService {
         skillEntities.push(skillEntity);
       }
   
-      // Assign the skills to the engineer and save again to populate the join table
+      
       savedEngineer.skills = skillEntities;
       await this.engineerRepository.save(savedEngineer);
   
-      // Then handle experiences
+      
       for (const exp of createEngineerDto.experiences) {
         const experience = this.experienceRepository.create({
           entreprise: exp.company,
