@@ -33,6 +33,14 @@ jobs:
         with:
           node-version: 18
 
+
+      - name: Create test database
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y mysql-client
+            mysql -h 127.0.0.1 -u root -e "CREATE DATABASE IF NOT EXISTS test_devoteam_resources_hub;"
+        
+
       - name: Create .env for test
         run: |
           echo "DATABASE_HOST=localhost" >> .env
