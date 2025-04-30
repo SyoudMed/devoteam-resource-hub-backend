@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
-import { Engineer } from 'src/engineer/entities/engineer.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany } from 'typeorm';
+import { Engineer } from '../../engineer/entities/engineer.entity';
 
-@Entity('skill')
+@Entity()
 export class Skills {
   @PrimaryGeneratedColumn()
   id: number;
@@ -16,5 +16,7 @@ export class Skills {
   category: string;
 
   @ManyToMany(() => Engineer, (engineer) => engineer.skills)
-  engineers: Engineer[];
+engineers: Engineer[];
+
+
 }

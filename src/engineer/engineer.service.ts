@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, In } from 'typeorm';
 import { Engineer } from './entities/engineer.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
@@ -19,6 +19,8 @@ import { MailService } from 'src/mail/mail.service';
 import { Skills } from 'src/skills/entities/skill.entity';
 import { CreateEngineerDto } from './dto/create-engineer.dto';
 
+
+
 @Injectable()
 export class EngineerService {
   constructor(
@@ -28,70 +30,15 @@ export class EngineerService {
     private userRepository: Repository<User>,
     @InjectRepository(Experience)
     private experienceRepository: Repository<Experience>,
+    private mailService: MailService,
     @InjectRepository(Skills)
     private skillRepository: Repository<Skills>,
-    private mailService: MailService,
   ) {}
 
-  async uploadEngineerFromCv(createEngineerDto: CreateEngineerDto) {
-    try {
-      const engineer = this.engineerRepository.create({
-        poste: createEngineerDto.position,
-        totalExperienceYear: createEngineerDto.total_experience_years,
-        speciality: createEngineerDto.speciality, 
-        languages: createEngineerDto.languages,
-        formations: createEngineerDto.trainings,
-        user: { id: 19 }, 
-      });
-  
-      const savedEngineer = await this.engineerRepository.save(engineer);
-  
-      
-      const skillEntities: Skills[] = [];
-  
-      for (const skill of createEngineerDto.skills) {
-        let skillEntity = await this.skillRepository.findOne({
-          where: { skill_name: skill.normalized },
-        });
-  
-        if (!skillEntity) {
-          skillEntity = this.skillRepository.create({
-            skill_name: skill.normalized,
-            original_name: skill.original,
-            category: skill.category,
-          });
-          skillEntity = await this.skillRepository.save(skillEntity);
-        }
-  
-        skillEntities.push(skillEntity);
-      }
-  
-      
-      savedEngineer.skills = skillEntities;
-      await this.engineerRepository.save(savedEngineer);
-  
-      
-      for (const exp of createEngineerDto.experiences) {
-        const experience = this.experienceRepository.create({
-          entreprise: exp.company,
-          poste: exp.job_title,
-          periode: exp.period,
-          responsabilities: exp.responsibilities,
-          engineer: savedEngineer,
-        });
-        await this.experienceRepository.save(experience);
-      }
-  
-      return {
-        message: 'Engineer created successfully from CV 🚀',
-        engineer: savedEngineer,
-      };
-    } catch (error) {
-      console.error('❌ Error in uploadEngineerFromCv:', error);
-      throw new BadRequestException("Erreur lors de l'enregistrement de l'ingénieur depuis CV");
-    }
-  }
-  
+
+ 
+
+
 
   async create(createEngineerDto: CreateUserDto): Promise<Engineer> {
     const existingUser = await this.userRepository.findOne({
@@ -102,6 +49,7 @@ export class EngineerService {
     }
 
     const hashedPassword = await bcrypt.hash(createEngineerDto.password, 10);
+
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationCodeExpiration = Date.now() + 3600000;
 
@@ -130,7 +78,7 @@ export class EngineerService {
     try {
       await this.mailService.sendAccountVerificationEmail(
         createEngineerDto.email,
-        createEngineerDto.password,
+        createEngineerDto.password, 
         verificationCode,
       );
     } catch (error) {
@@ -145,7 +93,7 @@ export class EngineerService {
   async findEngineerById(id: number): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { id },
-      relations: ['user', 'experiences', 'skills', 'comments'],
+      relations: ['user', 'experiences', 'comments'],
     });
 
     if (!engineer) {
@@ -155,10 +103,12 @@ export class EngineerService {
     return engineer;
   }
 
+
+
   private async uploadCvToCloudinary(file: Express.Multer.File, engineerId: number): Promise<string> {
     try {
       const publicId = `engineer_${engineerId}_${Date.now()}.pptx`;
-
+      
       const result = await new Promise<any>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -168,19 +118,26 @@ export class EngineerService {
             overwrite: true,
           },
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) {
+              console.error('Erreur Cloudinary:', error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
           },
         );
-        uploadStream.end(file.buffer);
+        uploadStream.end(file.buffer); 
       });
 
+    
       return result.secure_url;
     } catch (error) {
-      throw new BadRequestException("Échec de l'upload du CV vers Cloudinary");
+      
+      throw new BadRequestException('Échec de l\'upload du CV vers Cloudinary');
     }
   }
 
+  
   private extractPublicId(url: string): string | null {
     const parts = url.split('/');
     const fileName = parts.pop()?.split('.')[0];
@@ -188,10 +145,14 @@ export class EngineerService {
   }
 
   async uploadEngineerCv(id: number, file: Express.Multer.File): Promise<Engineer> {
+    
     const engineer = await this.engineerRepository.findOne({ where: { id } });
-    if (!engineer) throw new NotFoundException(`Ingénieur ${id} non trouvé`);
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur ${id} non trouvé`);
+    }
 
     if (!file.mimetype.includes('presentationml.presentation')) {
+      console.error('Type de fichier invalide:', file.mimetype);
       throw new BadRequestException('Seuls les fichiers PPTX sont acceptés');
     }
 
@@ -201,137 +162,213 @@ export class EngineerService {
 
     try {
       if (engineer.CvUrl) {
-        const publicId = this.extractPublicId(engineer.CvUrl) + '.pptx';
+        const publicId = this.extractPublicId(engineer.CvUrl)+".pptx";
         if (publicId) {
-          await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+      
+          await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' })
+            .catch((error) => console.error('Erreur lors de la suppression de l\'ancien CV:', error));
         }
       }
 
       const cvUrl = await this.uploadCvToCloudinary(file, id);
+
       await this.engineerRepository.update(id, { CvUrl: cvUrl });
 
-      return await this.engineerRepository.findOneOrFail({ where: { id } });
+      const updatedEngineer = await this.engineerRepository.findOneOrFail({ where: { id } });
+
+      return updatedEngineer;
     } catch (error) {
       throw new BadRequestException(`Échec de l'upload: ${error.message}`);
     }
   }
 
-  // async updateProfile(id: number, dto: UpdateEngineerProfileDto): Promise<Engineer> {
-  //   const queryRunner = this.engineerRepository.manager.connection.createQueryRunner();
-  //   await queryRunner.connect();
-  //   await queryRunner.startTransaction();
 
-  //   try {
-  //     const engineer = await this.engineerRepository.findOne({
-  //       where: { id },
-  //       relations: ['user', 'experiences', 'skills'],
-  //     });
-  //     if (!engineer) throw new NotFoundException(`Ingénieur ${id} non trouvé`);
+  async updateProfile(
+    id: number,
+    updateEngineerProfileDto: UpdateEngineerProfileDto,
+  ): Promise<Engineer> {
+    const queryRunner = this.engineerRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  //     engineer.poste = dto.poste ?? engineer.poste;
-  //     engineer.totalExperienceYear = dto.totalExperienceYear ?? engineer.totalExperienceYear;
-  //     engineer.languages = Array.isArray(dto.languages) ? dto.languages : engineer.languages;
-  //     engineer.formations = dto.formations ?? engineer.formations;
+    try {
+      const engineerRepository = queryRunner.manager.getRepository(Engineer);
+      const skillRepository = queryRunner.manager.getRepository(Skills);
+      const experienceRepository = queryRunner.manager.getRepository(Experience);
 
-  //     if (dto.skills && dto.skills.length > 0) {
-  //       const updatedSkills = await Promise.all(dto.skills.map(async (skill) => {
-  //         let skillEntity = await this.skillRepository.findOne({ where: { skill_name: skill.normalized } });
-  //         if (!skillEntity) {
-  //           skillEntity = this.skillRepository.create({
-  //             skill_name: skill.normalized,
-  //             original_name: skill.original,
-  //             category: skill.category,
-  //           });
-  //           await this.skillRepository.save(skillEntity);
-  //         }
-  //         return skillEntity;
-  //       }));
-  //       engineer.skills = updatedSkills;
-  //     }
+      // Récupérer l'ingénieur avec ses relations
+      const engineer = await engineerRepository.findOne({
+        where: { id },
+        relations: ['user', 'experiences', 'skills'],
+      });
 
-  //     await queryRunner.manager.delete(Experience, { engineer: { id } });
+      if (!engineer) {
+        throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
+      }
 
-  //     if (dto.experience && dto.experience.length > 0) {
-  //       const newExperiences = dto.experience.map((expDto) =>
-  //         this.experienceRepository.create({
-  //           entreprise: expDto.entreprise,
-  //           poste: expDto.poste,
-  //           periode: expDto.periode,
-  //           responsabilities: expDto.responsabilities,
-  //           engineer,
-  //         })
-  //       );
-  //       await queryRunner.manager.save(Experience, newExperiences);
-  //     }
+      // Mise à jour des champs simples
+      engineer.poste = updateEngineerProfileDto.poste ?? engineer.poste;
+      engineer.totalExperienceYear = updateEngineerProfileDto.totalExperienceYear ?? engineer.totalExperienceYear;
+      engineer.languages = Array.isArray(updateEngineerProfileDto.languages)
+        ? updateEngineerProfileDto.languages
+        : engineer.languages || [];
+      engineer.formations = updateEngineerProfileDto.formations ?? engineer.formations;
 
-  //     const updated = await queryRunner.manager.save(Engineer, engineer);
-  //     await queryRunner.commitTransaction();
-  //     return updated;
-  //   } catch (error) {
-  //     await queryRunner.rollbackTransaction();
-  //     throw new BadRequestException(`Erreur lors de la mise à jour du profil: ${error.message}`);
-  //   } finally {
-  //     await queryRunner.release();
-  //   }
-  // }
+      // Associer les compétences (Many-to-Many)
+      if (Array.isArray(updateEngineerProfileDto.skills)) {
+        const skillEntities: Skills[] = [];
+
+        for (const skillGroup of updateEngineerProfileDto.skills) {
+          const { category, skills } = skillGroup;
+
+          if (!category || !Array.isArray(skills) || skills.length === 0) {
+            console.warn(`Groupe de compétences invalide: category=${category}, skills=${JSON.stringify(skills)}`);
+            continue;
+          }
+
+          for (const skillName of skills) {
+            if (!skillName || typeof skillName !== 'string' || skillName.trim() === '') {
+              console.warn(`Compétence invalide: ${skillName}`);
+              continue;
+            }
+
+
+            let skillEntity: Skills | null = await skillRepository.findOne({
+              where: { skill_name: skillName.trim(), category: category.trim() },
+            });
+
+            if (!skillEntity) {
+              skillEntity = skillRepository.create({
+                skill_name: skillName.trim(),
+                original_name: skillName.trim(), 
+                category: category.trim(),
+              });
+              skillEntity = await skillRepository.save(skillEntity);
+            } 
+
+            if (!skillEntities.some((entity) => entity.id === skillEntity!.id)) {
+              skillEntities.push(skillEntity);
+            }
+          }
+        }
+
+        // Supprimer les relations existantes dans engineer_skills
+        const deleteResult = await queryRunner.manager
+          .createQueryBuilder()
+          .delete()
+          .from('engineer_skills') 
+          .where('engineer_id = :id', { id }) 
+          .execute();
+
+        // Vérifier que la table est vide pour cet ingénieur
+        const currentRelations = await queryRunner.manager
+          .createQueryBuilder()
+          .select()
+          .from('engineer_skills', 'relation')
+          .where('relation.engineer_id = :id', { id })
+          .getRawMany();
+        if (currentRelations.length > 0) {
+          console.error(`Relations non supprimées:`, currentRelations);
+          throw new Error('Échec de la suppression des relations existantes');
+        }
+
+        engineer.skills = skillEntities;
+      }
+
+      // Enregistrer les modifications de l'ingénieur
+      const updatedEngineer = await engineerRepository.save(engineer, { transaction: false });
+
+      // Supprimer les anciennes expériences
+      await queryRunner.manager.delete(Experience, { engineer: { id } });
+
+      // Ajouter les nouvelles expériences
+      if (Array.isArray(updateEngineerProfileDto.experience) && updateEngineerProfileDto.experience.length > 0) {
+        for (const exp of updateEngineerProfileDto.experience) {
+          const experience = experienceRepository.create({
+            entreprise: exp.entreprise,
+            poste: exp.poste,
+            periode: exp.periode,
+            responsabilities: exp.responsabilities,
+            engineer: updatedEngineer,
+          });
+          await experienceRepository.save(experience);
+
+        }
+      }
+
+      await queryRunner.commitTransaction();
+
+      return updatedEngineer;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error(' Erreur lors de la mise à jour du profil:', error);
+      throw new BadRequestException(`Erreur lors de la mise à jour du profil: ${error.message}`);
+    } finally {
+      await queryRunner.release();
+    }
+  }
+  
+  
 
   async findAllEngineers(): Promise<Engineer[]> {
-    return this.engineerRepository.find({ relations: ['user', 'experiences', 'skills'] });
+    return this.engineerRepository.find({ relations: ['user', 'experiences'] });
   }
 
-  async findPaginatedEngineers(query: {
-    page: number;
-    limit: number;
-    search?: string;
-    specialty?: string;
-  }) {
-    const { page, limit, search, specialty } = query;
-  
-    // ✅ Add this validation to prevent SQL syntax error
-    if (page < 1 || limit < 1) {
-      throw new BadRequestException('Page and limit must be at least 1');
-    }
-  
+
+
+  async findPaginatedEngineers({
+    page,
+    limit,
+    search = '',
+    specialty = '',
+  }: PaginationParams): Promise<PaginatedResponse<Engineer>> {
     const skip = (page - 1) * limit;
-  
-    const qb = this.engineerRepository
-      .createQueryBuilder('engineer')
-      .leftJoinAndSelect('engineer.user', 'user')
-      .leftJoinAndSelect('engineer.experiences', 'experience')
-      .leftJoinAndSelect('engineer.skills', 'skills')
-      .leftJoinAndSelect('engineer.reservations', 'reservations')
-      .leftJoinAndSelect('engineer.comments', 'comments');
-  
+
+    const whereClause: any = {};
     if (search) {
-      qb.andWhere(
-        '(user.email LIKE :search OR user.nom LIKE :search OR user.prenom LIKE :search)',
-        { search: `%${search}%` },
-      );
+      whereClause.user = [
+        { firstName: Like(`%${search}%`) },
+        { lastName: Like(`%${search}%`) },
+        { email: Like(`%${search}%`) },
+      ];
     }
-  
     if (specialty) {
-      qb.andWhere('engineer.speciality = :specialty', { specialty });
+      whereClause.speciality = specialty;
     }
-  
-    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
-  
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+
+    try {
+      const [engineers, total] = await this.engineerRepository.findAndCount({
+        where: whereClause,
+        relations: ['user', 'experiences'],
+        skip,
+        take: limit,
+        order: { id: 'ASC' },
+      });
+
+      return {
+        data: engineers,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        limit,
+      };
+    } catch (error) {
+      throw new BadRequestException('Erreur lors de la récupération des ingénieurs paginés');
+    }
   }
   
 
-  async updateAvailability(id: number, dto: UpdateAvailabilityDto): Promise<Engineer> {
+  async updateAvailability(id: number, updateAvailabilityDto: UpdateAvailabilityDto): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { id },
       relations: ['user'],
     });
-    if (!engineer) throw new NotFoundException(`Ingénieur ${id} non trouvé`);
-    engineer.disponibiliteStatus = dto.disponibiliteStatus;
+
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
+    }
+
+    engineer.disponibiliteStatus = updateAvailabilityDto.disponibiliteStatus;
     return this.engineerRepository.save(engineer);
   }
 
@@ -340,38 +377,65 @@ export class EngineerService {
       where: { id },
       relations: ['user'],
     });
-    if (!engineer) throw new NotFoundException('Ingénieur non trouvé');
+
+    if (!engineer) {
+      throw new NotFoundException('Ingénieur non trouvé');
+    }
+
     await this.userRepository.delete(engineer.user.id);
     await this.engineerRepository.remove(engineer);
     return { message: `Ingénieur avec l'ID ${id} supprimé avec succès` };
   }
 
+  
   async findEngineerByUserId(userId: number): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { user: { id: userId } },
-      relations: ['user', 'experiences', 'skills'],
+      relations: ['user', 'experiences'],
     });
-    if (!engineer) throw new NotFoundException(`Ingénieur avec l'userId ${userId} non trouvé`);
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur avec l'userId ${userId} non trouvé`);
+    }
     return engineer;
   }
 
   async getTotalEngineersCount(): Promise<number> {
     try {
-      return await this.engineerRepository.count();
+      const count = await this.engineerRepository.count();
+      return count;
     } catch (error) {
-      throw new BadRequestException('Erreur lors du comptage des ingénieurs');
+      throw new BadRequestException(
+        'Erreur lors de la récupération du nombre total d\'ingénieurs',
+      );
+    }
+  }
+  
+  async getAvailabilityCounts(): Promise<{ available: number; unavailable: number }> {
+    try {
+      const [availableCount, unavailableCount] = await Promise.all([
+        this.engineerRepository.count({
+          where: { disponibiliteStatus: AvailabilityStatus.AVAILABLE },
+        }),
+        this.engineerRepository.count({
+          where: { disponibiliteStatus: AvailabilityStatus.UNAVAILABLE },
+        }),
+      ]);
+
+      return {
+        available: availableCount,
+        unavailable: unavailableCount,
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        'Erreur lors de la récupération des comptes de disponibilité des ingénieurs',
+      );
     }
   }
 
-  async getAvailabilityCounts(): Promise<{ available: number; unavailable: number }> {
-    try {
-      const [available, unavailable] = await Promise.all([
-        this.engineerRepository.count({ where: { disponibiliteStatus: AvailabilityStatus.AVAILABLE } }),
-        this.engineerRepository.count({ where: { disponibiliteStatus: AvailabilityStatus.UNAVAILABLE } }),
-      ]);
-      return { available, unavailable };
-    } catch (error) {
-      throw new BadRequestException('Erreur lors du comptage des disponibilités');
-    }
-  }
+  
+
 }
+
+
+
+
