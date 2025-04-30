@@ -14,7 +14,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root                  # Password used in CI only
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes           # <=== this is key!
           MYSQL_DATABASE: devoteam_resources_hub
         ports:
           - 3306:3306
@@ -33,12 +33,12 @@ jobs:
         with:
           node-version: 18
 
-      - name: Create .env for CI environment
+      - name: Create .env for test
         run: |
           echo "DATABASE_HOST=localhost" >> .env
           echo "DATABASE_PORT=3306" >> .env
           echo "DATABASE_USER=root" >> .env
-          echo "DATABASE_PASSWORD=root" >> .env     # Matches MYSQL_ROOT_PASSWORD above
+          echo "DATABASE_PASSWORD=" >> .env        # <=== Empty string, just like local
           echo "DATABASE_NAME=devoteam_resources_hub" >> .env
 
       - name: Install Dependencies
