@@ -14,7 +14,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes           # <=== this is key!
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: devoteam_resources_hub
         ports:
           - 3306:3306
@@ -33,21 +33,19 @@ jobs:
         with:
           node-version: 18
 
-
-      - name: Create test database
+      - name: Install MySQL Client & Create Test DB
         run: |
-            sudo apt-get update
-            sudo apt-get install -y mysql-client
-            mysql -h 127.0.0.1 -u root -e "CREATE DATABASE IF NOT EXISTS test_devoteam_resources_hub;"
-        
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+          mysql -h 127.0.0.1 -u root -e "CREATE DATABASE IF NOT EXISTS test_devoteam_resources_hub;"
 
-      - name: Create .env for test
+      - name: Create .env file for CI
         run: |
           echo "DATABASE_HOST=localhost" >> .env
           echo "DATABASE_PORT=3306" >> .env
           echo "DATABASE_USER=root" >> .env
-          echo "DATABASE_PASSWORD=" >> .env        # <=== Empty string, just like local
-          echo "DATABASE_NAME=devoteam_resources_hub" >> .env
+          echo "DATABASE_PASSWORD=" >> .env
+          echo "DATABASE_NAME=test_devoteam_resources_hub" >> .env
 
       - name: Install Dependencies
         run: npm install
