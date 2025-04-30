@@ -15,9 +15,9 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: DATABASE_NAME
-          MYSQL_USER: DATABASE_USER
-          MYSQL_PASSWORD: DATABASE_PASSWORD
+          MYSQL_DATABASE: devoteam_resources_hub
+          MYSQL_USER: root
+          MYSQL_PASSWORD: ""
         ports:
           - 3306:3306
         options: >-
