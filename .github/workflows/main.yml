@@ -3,12 +3,12 @@ name: Build & Deploy NestJS with MySQL
 on:
   push:
     branches:
-      - develop-v5  
+      - develop-v5
 
 jobs:
   build-deploy:
     name: Build and Deploy NestJS with MySQL
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest
 
     services:
       mysql:
@@ -16,8 +16,6 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: devoteam_resources_hub
-          MYSQL_USER: root
-          MYSQL_PASSWORD: ""
         ports:
           - 3306:3306
         options: >-
@@ -35,11 +33,19 @@ jobs:
         with:
           node-version: 18
 
+      - name: Create .env for test
+        run: |
+          echo "DATABASE_HOST=localhost" >> .env
+          echo "DATABASE_PORT=3306" >> .env
+          echo "DATABASE_USER=root" >> .env
+          echo "DATABASE_PASSWORD=root" >> .env
+          echo "DATABASE_NAME=devoteam_resources_hub" >> .env
+
       - name: Install Dependencies
         run: npm install
 
       - name: Run Unit Tests
-        run: npm test  
+        run: npm test
 
       - name: Build the Application
         run: npm run build
@@ -52,7 +58,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: Dockerfile  
+          file: Dockerfile
           push: false
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/nestjs-mysql:${{ env.timestamp }}
 
@@ -66,6 +72,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: Dockerfile  
+          file: Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/nestjs-mysql:${{ env.timestamp }}
