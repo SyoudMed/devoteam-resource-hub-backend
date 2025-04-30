@@ -38,33 +38,39 @@ export class EngineerService {
       const engineer = this.engineerRepository.create({
         poste: createEngineerDto.position,
         totalExperienceYear: createEngineerDto.total_experience_years,
+        speciality: createEngineerDto.speciality, 
         languages: createEngineerDto.languages,
         formations: createEngineerDto.trainings,
-        user: { id: 30 }, // à remplacer plus tard dynamiquement
+        user: { id: 26 }, 
       });
-
-      // Associer les skills (Many-to-Many) à partir de noms normalisés
+  
+      const savedEngineer = await this.engineerRepository.save(engineer);
+  
+      // Now handle skills (many-to-many)
       const skillEntities: Skill[] = [];
+  
       for (const skill of createEngineerDto.skills) {
         let skillEntity = await this.skillRepository.findOne({
           where: { skill_name: skill.normalized },
         });
-
+  
         if (!skillEntity) {
           skillEntity = this.skillRepository.create({
             skill_name: skill.normalized,
             original_name: skill.original,
             category: skill.category,
           });
-          await this.skillRepository.save(skillEntity);
+          skillEntity = await this.skillRepository.save(skillEntity);
         }
-
+  
         skillEntities.push(skillEntity);
       }
-
-      engineer.skills = skillEntities;
-      const savedEngineer = await this.engineerRepository.save(engineer);
-
+  
+      // Assign the skills to the engineer and save again to populate the join table
+      savedEngineer.skills = skillEntities;
+      await this.engineerRepository.save(savedEngineer);
+  
+      // Then handle experiences
       for (const exp of createEngineerDto.experiences) {
         const experience = this.experienceRepository.create({
           entreprise: exp.company,
@@ -75,7 +81,7 @@ export class EngineerService {
         });
         await this.experienceRepository.save(experience);
       }
-
+  
       return {
         message: 'Engineer created successfully from CV 🚀',
         engineer: savedEngineer,
@@ -85,6 +91,7 @@ export class EngineerService {
       throw new BadRequestException("Erreur lors de l'enregistrement de l'ingénieur depuis CV");
     }
   }
+  
 
   async create(createEngineerDto: CreateUserDto): Promise<Engineer> {
     const existingUser = await this.userRepository.findOne({
