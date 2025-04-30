@@ -75,8 +75,8 @@ describe('EngineerService - findPaginatedEngineers', () => {
   describe('findPaginatedEngineers', () => {
     it('should return paginated engineers with no filters', async () => {
       const result = await service.findPaginatedEngineers({
-        page: 1,
-        limit: 3,
+        page: 0,
+        limit: 10,
         search: 'ali@example.com',
         specialty: '',
       });
