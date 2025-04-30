@@ -3,7 +3,7 @@ name: Build & Deploy NestJS with MySQL
 on:
   push:
     branches:
-      - main  
+      - develop-v5  
 
 jobs:
   build-deploy:
@@ -39,7 +39,7 @@ jobs:
         run: npm install
 
       - name: Run Unit Tests
-        run: npm test  # If you have tests
+        run: npm test  
 
       - name: Build the Application
         run: npm run build
@@ -52,7 +52,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: Dockerfile  # ✅ FIXED: changed 'dockerfile' to 'file'
+          file: Dockerfile  
           push: false
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/nestjs-mysql:${{ env.timestamp }}
 
@@ -66,6 +66,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: Dockerfile  # ✅ FIXED: changed 'dockerfile' to 'file'
+          file: Dockerfile  
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/nestjs-mysql:${{ env.timestamp }}
