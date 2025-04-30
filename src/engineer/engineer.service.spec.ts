@@ -9,6 +9,7 @@ import { Reservation } from '../Reservations/entities/reservation.entity';
 import { Offre } from '../clients/entities/offre.entity';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException } from '@nestjs/common';
+import { Skill } from 'src/skills/entities/skill.entity';
 //badlet el esm mtaa el bd
 jest.setTimeout(30000); // Avoid CI timeout
 
@@ -29,12 +30,29 @@ describe('EngineerService - findPaginatedEngineers', () => {
           port: 3306,
           username: 'root',
           password: '',
-          database: 'test_devoteam_resources_hub', // ✅ MATCH THE CI DB
-          entities: [Engineer, User, Experience, Comment, Reservation, Offre],
-          synchronize: true, // Optional: helps in CI
+          database: 'test_devoteam_resources_hub',
+          synchronize: true,
+          entities: [
+            Engineer,
+            User,
+            Experience,
+            Comment,
+            Reservation,
+            Offre,
+            Skill, // <== add this
+          ],
         }),
-        TypeOrmModule.forFeature([Engineer, User, Experience, Comment, Reservation, Offre]),
+        TypeOrmModule.forFeature([
+          Engineer,
+          User,
+          Experience,
+          Comment,
+          Reservation,
+          Offre,
+          Skill, // <== or SkillRepository if you're using a custom repo
+        ]),
       ],
+      
       providers: [
         EngineerService,
         { provide: MailService, useValue: mockMailService },
