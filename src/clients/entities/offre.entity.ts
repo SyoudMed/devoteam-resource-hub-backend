@@ -1,6 +1,7 @@
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { User } from '../../users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { OffreSkill } from './offre-skill.entity';
 
 export enum OffreStatus {
   ACCEPTER = 'accepter',
@@ -45,15 +46,18 @@ export class Offre {
   requiredSpeciality: Speciality;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'createdById' }) 
+  @JoinColumn({ name: 'createdById' })
   createdBy: User;
 
-  @Column({ nullable: false }) 
+  @Column()
   createdById: number;
 
-  @Column({ type: 'json'}) 
-  requiredSkills: string[];
+  @Column({ type: 'json' })
+  languages: string[];
 
   @OneToMany(() => Reservation, (reservation) => reservation.offre)
   reservations: Reservation[];
+
+  @OneToMany(() => OffreSkill, (skill: OffreSkill) => skill.offre, { cascade: true })
+  requiredSkills: OffreSkill[];
 }

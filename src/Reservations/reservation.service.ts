@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Not, Repository } from 'typeorm';
+import { LessThan, Like, Not, Repository } from 'typeorm';
 import { Reservation } from './entities/reservation.entity';
 import { PaginationParams, PaginatedResponse } from './dto/pagination-params.dto';
 import { Engineer } from '../engineer/entities/engineer.entity';
@@ -236,28 +236,40 @@ async findOne(id: number): Promise<Reservation> {
 
   
   async deleteReservation(id: number): Promise<void> {
-    const reservation = await this.reservationRepository.findOne({ where: { id } });
+    // On récupère la réservation avec l'ingénieur associé
+    const reservation = await this.reservationRepository.findOne({
+      where: { id },
+      relations: ['engineer'], // Assure-toi que la relation est bien définie dans l'entité
+    });
+  
     if (!reservation) {
       throw new NotFoundException(`Réservation avec l'ID ${id} non trouvée`);
     }
+  
+    // Si la réservation est en attente, on met l'ingénieur comme disponible
+    if (reservation.status === 'pending' && reservation.engineer) {
+      reservation.engineer.disponibiliteStatus= AvailabilityStatus.AVAILABLE; // ou `disponible = true` selon ton modèle
+      await this.engineerRepository.save(reservation.engineer);
+    }
+  
+    // Suppression de la réservation
     await this.reservationRepository.delete(id);
   }
-
+  
   async updateStatus(id: number, status: 'accepted' | 'rejected' | 'pending'): Promise<Reservation> {
     const reservation = await this.reservationRepository.findOne({
       where: { id },
       relations: ['engineer', 'engineer.user', 'commercial', 'offre'],
     });
-
+  
     if (!reservation) {
       throw new NotFoundException(`Réservation avec l'ID ${id} non trouvée`);
     }
-
+  
     const engineer = reservation.engineer;
     const offre = reservation.offre;
-
+  
     if (status === 'accepted') {
-      
       const existingAcceptedReservation = await this.reservationRepository.findOne({
         where: {
           offre: { id: offre.id },
@@ -266,46 +278,52 @@ async findOne(id: number): Promise<Reservation> {
         },
         relations: ['engineer', 'engineer.user'],
       });
-
+  
       if (existingAcceptedReservation) {
         throw new BadRequestException(
           `L'offre "${offre.jobTitle}" est déjà affectée à l'ingénieur ${existingAcceptedReservation.engineer.user.firstName} ${existingAcceptedReservation.engineer.user.lastName}.`
         );
       }
-
+  
       engineer.disponibiliteStatus = AvailabilityStatus.UNAVAILABLE;
       offre.status = OffreStatus.ACCEPTER;
       reservation.status = status;
+  
       await this.offreRepository.save(offre);
-      await this.reservationRepository.save(reservation); 
-    } else if (status === 'rejected') {
-      
+    } 
+    
+    else if (status === 'rejected') {
+      // 🔁 Mise à jour de la disponibilité si elle était indisponible
       if (engineer.disponibiliteStatus === AvailabilityStatus.UNAVAILABLE) {
         engineer.disponibiliteStatus = AvailabilityStatus.AVAILABLE;
       }
+  
       reservation.status = status;
-      await this.reservationRepository.save(reservation);
-
+  
       const existingAcceptedReservation = await this.reservationRepository.findOne({
         where: {
           offre: { id: offre.id },
           status: 'accepted',
         },
       });
-      
-      if (existingAcceptedReservation==null) {
+  
+      // Remet l'offre à EN_ATTENTE si aucun autre accepté
+      if (!existingAcceptedReservation) {
         offre.status = OffreStatus.EN_ATTENTE;
         await this.offreRepository.save(offre);
       }
-    } else {
-      
-      reservation.status = status;
-      await this.reservationRepository.save(reservation); 
-    }
+    } 
     
+    else {
+      reservation.status = status;
+    }
+  
     await this.engineerRepository.save(engineer);
-    return reservation; 
+    await this.reservationRepository.save(reservation);
+  
+    return reservation;
   }
+  
 
   async getReservationStatusCounts(): Promise<{ pending: number; accepted: number; rejected: number }> {
     try {
@@ -343,6 +361,28 @@ async findOne(id: number): Promise<Reservation> {
         status: 'pending'
       },
       relations: ['engineer', 'engineer.user', 'commercial', 'offre'],
+      order: { startTime: 'ASC' },
+    });
+  
+    return reservations;
+  }
+
+
+  async getPendingPastReservationsByCommercialId(commercialId: number): Promise<Reservation[]> {
+    const commercial = await this.userRepository.findOne({ where: { id: commercialId } });
+    if (!commercial) {
+      throw new NotFoundException(`Commercial avec l'ID ${commercialId} non trouvé`);
+    }
+  
+    const currentDate = new Date();
+  
+    const reservations = await this.reservationRepository.find({
+      where: {
+        commercial: { id: commercialId },
+        status: 'pending',
+        startTime: LessThan(currentDate), 
+      },
+      relations: ['engineer', 'engineer.user', 'offre'], 
       order: { startTime: 'ASC' },
     });
   

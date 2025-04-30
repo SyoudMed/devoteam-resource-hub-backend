@@ -11,12 +11,13 @@ import { Experience } from '../experiences/entities/experience.entity';
 import { MailService } from 'src/mail/mail.service';
 import { ExperienceService } from 'src/experiences/experience.service';
 import { Skills } from 'src/skills/entities/skill.entity';
+import { ProfileUpdateGateway } from 'src/profile-update.gateway';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Engineer,User,Experience,Skills]),
     forwardRef(() => AuthModule),
 ],
-    providers: [EngineerService,MailService,ExperienceService],
+    providers: [EngineerService,MailService,ExperienceService,ProfileUpdateGateway],
     controllers: [EngineerController],
     exports: [EngineerService],
 })

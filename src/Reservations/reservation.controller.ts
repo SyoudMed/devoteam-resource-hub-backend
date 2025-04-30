@@ -5,6 +5,8 @@ import { Reservation } from './entities/reservation.entity';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { UserRole } from 'src/common/enum/UserRole.enum';
 
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,12 +15,14 @@ export class ReservationController {
 
   
   @Post()
+  @Roles(UserRole.COMMERCIAL)
   create(@Body() createReservationDto: CreateReservationDto): Promise<Reservation> {
     return this.reservationService.create(createReservationDto);
   }
 
 
   @Get('commercial/:commercialId')
+  @Roles(UserRole.COMMERCIAL)
   async getReservationsByCommercialId(
     @Param('commercialId', ParseIntPipe) commercialId: number,
   ): Promise<Reservation[]> {
@@ -30,7 +34,8 @@ export class ReservationController {
   
 
   // Supprimer une réservation
-  
+
+  @Roles(UserRole.COMMERCIAL) 
   @Delete(':id')
   async deleteReservation(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.reservationService.deleteReservation(id);
@@ -39,6 +44,7 @@ export class ReservationController {
   // Mettre à jour le statut d’une réservation
   
   @Patch(':id/status')
+  @Roles(UserRole.COMMERCIAL)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body('status') status: 'accepted' | 'rejected' 
@@ -48,6 +54,7 @@ export class ReservationController {
 
 
   @Get('paginatedCommercialReservations')
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER)
   async findPaginatedCommercialReservations(
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
@@ -73,6 +80,7 @@ export class ReservationController {
   
 
   @Get('paginated')
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER)
   async getPaginatedReservations(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -88,17 +96,26 @@ export class ReservationController {
   }
 
   @Get('status-count')
-  
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER)
   async getReservationStatusCounts(): Promise<{ pending: number; accepted: number; rejected: number }> {
     return this.reservationService.getReservationStatusCounts();
   }
 
 
   @Get('engineer/:engineerId/pending')
+  @Roles(UserRole.INGENIEUR)
   async getPendingReservationsByEngineerId(
     @Param('engineerId', ParseIntPipe) engineerId: number,
   ): Promise<Reservation[]> {
     return this.reservationService.getPendingReservationsByEngineerId(engineerId);
+  }
+
+
+
+  @Roles(UserRole.COMMERCIAL)
+  @Get('pending-past/:commercialId')
+  async getPendingPastReservations(@Param('commercialId', ParseIntPipe) commercialId: number) {
+    return this.reservationService.getPendingPastReservationsByCommercialId(commercialId);
   }
 
 

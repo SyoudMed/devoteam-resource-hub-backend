@@ -14,6 +14,7 @@ import { ReservationModule } from './Reservations/reservation.module';
 import { OffreModule } from './clients/offre.module';
 
 import { MailModule } from './mail/mail.module';
+import { ProfileUpdateGateway } from './profile-update.gateway';
 
 @Module({
   imports: [
@@ -50,5 +51,9 @@ import { MailModule } from './mail/mail.module';
    
     OffreModule,
   ],
+  providers: [
+    ProfileUpdateGateway, 
+  ],
+
 })
 export class AppModule {}

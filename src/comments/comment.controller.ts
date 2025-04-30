@@ -14,7 +14,7 @@ export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 
   @Post('engineers/:engineerId')
-  @Roles(UserRole.MANAGER, UserRole.COMMERCIAL)
+  @Roles(UserRole.MANAGER)
   async addComment(
     @Param('engineerId', ParseIntPipe) engineerId: number,
     @Body() createCommentDto: CreateCommentDto,
@@ -26,12 +26,13 @@ export class CommentController {
   }
 
   @Get('engineers/:engineerId')
+ 
   async getCommentsByEngineerId(@Param('engineerId', ParseIntPipe) engineerId: number) {
     return this.commentService.findCommentsByEngineerId(engineerId);
   }
 
   @Delete(':commentId')
-  @Roles(UserRole.MANAGER, UserRole.COMMERCIAL)
+  @Roles(UserRole.MANAGER)
   async deleteComment(@Param('commentId') commentId: string, @Req() req: Request) {
     const userId = (req.user as any).id;
     await this.commentService.deleteComment(commentId, userId);

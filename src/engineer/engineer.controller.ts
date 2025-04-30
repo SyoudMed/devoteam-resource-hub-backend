@@ -1,5 +1,4 @@
-import {Controller,Get,Post,Put,Patch,Delete,Body,Param,Query,UseGuards,ParseIntPipe,UseInterceptors,UploadedFile, BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EngineerService } from './engineer.service';
 import { Engineer } from './entities/engineer.entity';
@@ -10,15 +9,15 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
-import { CreateEngineerDto } from './dto/create-engineer.dto';
+import { ProfileUpdateGateway } from 'src/profile-update.gateway';
 
 @Controller('engineers')
-@UseGuards(JwtAuthGuard, RolesGuard)
+
 export class EngineerController {
-  constructor(private readonly engineerService: EngineerService) {}
-
-
-  
+  constructor(
+    private readonly engineerService: EngineerService,
+    private readonly profileUpdateGateway: ProfileUpdateGateway,
+  ) {}
 
   // Lister tous les ingénieurs
   @Get('listengineer')
@@ -60,14 +59,25 @@ export class EngineerController {
   @Get("by-user/:userId")
   async getEngineerByUserId(@Param("userId", ParseIntPipe) userId: number) {
     return this.engineerService.findEngineerByUserId(userId);
-}
+  }
+
   // Mettre à jour le profil d’un ingénieur
   @Patch('profile/:id')
   async updateProfile(
+    
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateEngineerProfileDto: UpdateEngineerProfileDto,
-  ): Promise<Engineer> {
-    return this.engineerService.updateProfile(id, updateEngineerProfileDto);
+    @Body() dto: UpdateEngineerProfileDto,
+  ) {
+    const updated = await this.engineerService.updateProfile(id, dto);
+    // Émission via Socket.IO
+    /*
+    this.profileUpdateGateway.notifyProfileUpdate(
+      id,
+      'success',
+      'Profil mis à jour avec succès',
+      Date.now().toString(),
+    );*/
+    return updated;
   }
 
   // Uploader un CV 
@@ -102,8 +112,7 @@ export class EngineerController {
     return this.engineerService.findPaginatedEngineers(paginationParams);
   }
 
-
-@Get('stats/count')
+  @Get('stats/count')
   async getEngineerStats() {
     const [total, availabilityCounts] = await Promise.all([
       this.engineerService.getTotalEngineersCount(),
@@ -113,13 +122,27 @@ export class EngineerController {
     return {
       total,
       available: availabilityCounts.available,
-      unavailable: availabilityCounts.unavailable
+      unavailable: availabilityCounts.unavailable,
     };
   }
-  
 
   @Get('stats/availability-count')
   async getAvailabilityCounts(): Promise<{ available: number; unavailable: number }> {
     return this.engineerService.getAvailabilityCounts();
   }
+
+  @Post('notify-profile-update')
+  async notifyProfileUpdate(
+    @Body() body: { engineerId: number; taskId: string; status: string; message: string },
+  ) {
+    this.profileUpdateGateway.notifyProfileUpdate(
+      body.engineerId,
+      body.status,
+      body.message,
+      body.taskId,
+    );
+    return { message: 'Notification envoyée' };
+  }
+
+  
 }

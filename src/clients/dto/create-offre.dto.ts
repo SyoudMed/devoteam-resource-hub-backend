@@ -1,34 +1,45 @@
-import { IsString, IsInt, IsDateString, IsEnum, IsArray, IsOptional } from 'class-validator';
-import { Speciality, OffreStatus } from '../entities/offre.entity';
+// src/offres/dto/create-offre.dto.ts
+
+import { IsString, IsEnum, IsDateString, IsInt, Min, Max, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { Speciality } from '../entities/offre.entity';
+
+class SkillDto {
+  @IsString()
+  skill_name: string;
+
+  @IsString()
+  category: string;
+}
 
 export class CreateOffreDto {
   @IsString()
   clientName: string;
 
-  @IsInt()
-  experience: number;
-
   @IsString()
   jobTitle: string;
 
-  @IsDateString()
-  startDate: Date;
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  experience: number;
 
   @IsDateString()
-  endDate: Date;
+  startDate: string;
 
-  @IsEnum(OffreStatus)
-  @IsOptional() 
-  status?: OffreStatus;
+  @IsDateString()
+  endDate: string;
 
   @IsEnum(Speciality)
   requiredSpeciality: Speciality;
 
   @IsArray()
-  @IsString({ each: true }) 
-  requiredSkills?: string[];
+  languages: string[];
 
+  @ValidateNested({ each: true })
+  @Type(() => SkillDto)
+  requiredSkills: SkillDto[];
 
   @IsInt()
-  createdById?: number;
+  createdById: number;
 }
