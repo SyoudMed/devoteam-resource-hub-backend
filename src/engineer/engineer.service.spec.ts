@@ -10,6 +10,7 @@ import { Offre } from '../clients/entities/offre.entity';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException } from '@nestjs/common';
 import { Skill } from 'src/skills/entities/skill.entity';
+import { OffreSkill } from 'src/clients/entities/offre-skill.entity';
 //badlet el esm mtaa el bd
 jest.setTimeout(30000); // Avoid CI timeout
 
@@ -39,7 +40,8 @@ describe('EngineerService - findPaginatedEngineers', () => {
             Comment,
             Reservation,
             Offre,
-            Skill, // <== add this
+            Skill,
+            OffreSkill
           ],
         }),
         TypeOrmModule.forFeature([
@@ -49,7 +51,8 @@ describe('EngineerService - findPaginatedEngineers', () => {
           Comment,
           Reservation,
           Offre,
-          Skill, // <== or SkillRepository if you're using a custom repo
+          Skill, 
+          OffreSkill
         ]),
       ],
       
