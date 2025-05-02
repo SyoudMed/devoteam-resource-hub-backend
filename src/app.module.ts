@@ -48,7 +48,6 @@ import { ProfileUpdateGateway } from './profile-update.gateway';
     CommercialModule,
     CommentModule,
     ReservationModule,
-   
     OffreModule,
   ],
   providers: [
