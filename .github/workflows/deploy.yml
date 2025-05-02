@@ -50,6 +50,9 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Debug Directory
+        run: ls -la src/auth
+
       # - name: Run Unit Tests
       #   run: npm test
 
@@ -58,14 +61,30 @@ jobs:
 
       - name: Get Timestamp
         id: date
-        run: echo "timestamp=$(date +'%s')" >> $GITHUB_ENV  # Utilisation d'un timestamp Unix
+        run: echo "timestamp=$(date +'%Y-%m-%d%H-%M-%S')" >> $GITHUB_ENV
 
-      - name: Build and Push Docker Image
+      - name: Convert Docker Hub Username to Lowercase
+        id: lowercase_username
+        run: echo "DOCKER_USERNAME=$(echo ${{ secrets.DOCKER_HUB_USERNAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: ${{ env.DOCKER_USERNAME }}/nestjs-mysql:${{ env.timestamp }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Push to DockerHub
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: |
-            ${{ format('{0}/{1}:{2}', secrets.DOCKER_HUB_USERNAME, 'nestjs-mysql', env.timestamp) }}
-            ${{ format('{0}/{1}:latest', secrets.DOCKER_HUB_USERNAME, 'nestjs-mysql') }}
+          tags: ${{ env.DOCKER_USERNAME }}/nestjs-mysql:${{ env.timestamp }}
