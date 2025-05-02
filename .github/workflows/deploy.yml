@@ -8,7 +8,7 @@ on:
 jobs:
   build-deploy:
     name: Build and Deploy NestJS with MySQL
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     services:
       mysql:
@@ -33,32 +33,44 @@ jobs:
         with:
           node-version: 18
 
+      - name: Install Chocolatey
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force;
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+        shell: powershell
+
       - name: Install MySQL Client & Create Test DB
         run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-client
+          choco install mysql -y
           mysql -h 127.0.0.1 -u root -e "CREATE DATABASE IF NOT EXISTS test_devoteam_resources_hub;"
+        shell: cmd
 
       - name: Create .env file for CI
         run: |
-          echo "DATABASE_HOST=localhost" >> .env
-          echo "DATABASE_PORT=3306" >> .env
-          echo "DATABASE_USER=root" >> .env
-          echo "DATABASE_PASSWORD=" >> .env
-          echo "DATABASE_NAME=test_devoteam_resources_hub" >> .env
+          echo DATABASE_HOST=localhost >> .env
+          echo DATABASE_PORT=3306 >> .env
+          echo DATABASE_USER=root >> .env
+          echo DATABASE_PASSWORD= >> .env
+          echo DATABASE_NAME=test_devoteam_resources_hub >> .env
+        shell: cmd
 
       - name: Install Dependencies
         run: npm install
+        shell: cmd
 
       # - name: Run Unit Tests
       #   run: npm test
+      #   shell: cmd
 
       - name: Build the Application
         run: npm run build
+        shell: cmd
 
       - name: Get Timestamp
         id: date
-        run: echo "timestamp=$(date +'%Y-%m-%d%H-%M-%S')" >> $GITHUB_ENV
+        run: echo "timestamp=%date:~10,4%-%date:~4,2%-%date:~7,2%%time:~0,2%-%time:~3,2%-%time:~6,2%" >> %GITHUB_ENV%
+        shell: cmd
 
       - name: Build Docker Image
         uses: docker/build-push-action@v4
