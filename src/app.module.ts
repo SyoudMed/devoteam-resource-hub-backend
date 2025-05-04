@@ -15,7 +15,7 @@ import { OffreModule } from './clients/offre.module';
 
 import { MailModule } from './mail/mail.module';
 import { ProfileUpdateGateway } from './profile-update.gateway';
-
+import { MatchingModule } from './matching/matching.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -48,6 +48,10 @@ import { ProfileUpdateGateway } from './profile-update.gateway';
     CommercialModule,
     CommentModule,
     ReservationModule,
+<<<<<<< HEAD
+=======
+    MatchingModule,
+>>>>>>> 1486acb (matching logic added)
     OffreModule,
   ],
   providers: [

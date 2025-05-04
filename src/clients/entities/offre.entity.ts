@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColum
 import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { User } from '../../users/entities/user.entity';
 import { OffreSkill } from './offre-skill.entity';
+import { MatchingResult } from 'src/matching/entities/matching-result.entity';
 
 export enum OffreStatus {
   ACCEPTER = 'accepter',
@@ -60,4 +61,8 @@ export class Offre {
 
   @OneToMany(() => OffreSkill, (skill: OffreSkill) => skill.offre, { cascade: true })
   requiredSkills: OffreSkill[];
+  @OneToMany(() => MatchingResult, (result) => result.offre)
+  matchingResults: MatchingResult[];
+
+  
 }
