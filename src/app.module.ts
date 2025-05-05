@@ -15,6 +15,7 @@ import { OffreModule } from './clients/offre.module';
 
 import { MailModule } from './mail/mail.module';
 import { ProfileUpdateGateway } from './profile-update.gateway';
+import { MatchingModule } from './matching/matching.module';
 
 @Module({
   imports: [
@@ -49,6 +50,8 @@ import { ProfileUpdateGateway } from './profile-update.gateway';
     CommentModule,
     ReservationModule,
     OffreModule,
+    MatchingModule,
+
   ],
   providers: [
     ProfileUpdateGateway, 

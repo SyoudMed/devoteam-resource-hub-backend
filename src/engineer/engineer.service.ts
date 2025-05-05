@@ -17,7 +17,8 @@ import { v2 as cloudinary } from 'cloudinary';
 import { Experience } from 'src/experiences/entities/experience.entity';
 import { MailService } from 'src/mail/mail.service';
 import { Skills } from 'src/skills/entities/skill.entity';
-import { CreateEngineerDto } from './dto/create-engineer.dto';
+import { PaginatedResponse, PaginationParams } from './dto/pagination-params.dto';
+
 
 
 
@@ -321,9 +322,20 @@ export class EngineerService {
     limit,
     search = '',
     specialty = '',
+    availability,
   }: PaginationParams): Promise<PaginatedResponse<Engineer>> {
-    const skip = (page - 1) * limit;
+    // Validation des paramètres
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('La page et la limite doivent être supérieures à 0');
+    }
 
+    if (availability && !Object.values(AvailabilityStatus).includes(availability)) {
+      throw new BadRequestException(
+        `Le statut de disponibilité doit être l'une des valeurs suivantes : ${Object.values(AvailabilityStatus).join(', ')}`,
+      );
+    }
+
+    const skip = (page - 1) * limit;
     const whereClause: any = {};
     if (search) {
       whereClause.user = [
@@ -332,8 +344,14 @@ export class EngineerService {
         { email: Like(`%${search}%`) },
       ];
     }
+
     if (specialty) {
       whereClause.speciality = specialty;
+    }
+
+
+    if (availability) {
+      whereClause.disponibiliteStatus = availability;
     }
 
     try {
@@ -353,10 +371,11 @@ export class EngineerService {
         limit,
       };
     } catch (error) {
-      throw new BadRequestException('Erreur lors de la récupération des ingénieurs paginés');
+      throw new BadRequestException(
+        `Erreur lors de la récupération des ingénieurs paginés : ${error.message}`,
+      );
     }
   }
-  
 
   async updateAvailability(id: number, updateAvailabilityDto: UpdateAvailabilityDto): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({

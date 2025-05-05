@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
+import { PaginatedResponse, PaginationParams } from 'src/common/enum/paginations';
 import { UserRole } from 'src/common/enum/UserRole.enum';
 import { MailService } from 'src/mail/mail.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';

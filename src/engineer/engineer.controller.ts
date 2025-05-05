@@ -10,6 +10,8 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 import { ProfileUpdateGateway } from 'src/profile-update.gateway';
+import { AvailabilityStatus } from 'src/common/enum/AvailabilityStatus.enum';
+import { PaginatedResponse, PaginationParams } from './dto/pagination-params.dto';
 
 @Controller('engineers')
 
@@ -20,12 +22,14 @@ export class EngineerController {
   ) {}
 
   // Lister tous les ingénieurs
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('listengineer')
   async findAllEngineers(): Promise<Engineer[]> {
     return this.engineerService.findAllEngineers();
   }
 
   // Créer un ingénieur 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER)
   @Post('create')
   async createEngineer(@Body() createEngineerDto: CreateUserDto): Promise<Engineer> {
@@ -33,6 +37,7 @@ export class EngineerController {
   }
 
   // Supprimer un ingénieur 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER)
   @Delete(':id')
   async deleteEngineer(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
@@ -40,6 +45,7 @@ export class EngineerController {
   }
 
   // Mettre à jour la disponibilité d’un ingénieur
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MANAGER)
   @Patch(':id')
   async updateAvailability(
@@ -50,12 +56,14 @@ export class EngineerController {
   }
 
   // Récupérer un ingénieur par ID
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findEngineerById(@Param('id', ParseIntPipe) id: number): Promise<Engineer> {
     return this.engineerService.findEngineerById(id);
   }
 
   // Récupérer un ingénieur par userId
+  @UseGuards(JwtAuthGuard)
   @Get("by-user/:userId")
   async getEngineerByUserId(@Param("userId", ParseIntPipe) userId: number) {
     return this.engineerService.findEngineerByUserId(userId);
@@ -81,6 +89,7 @@ export class EngineerController {
   }
 
   // Uploader un CV 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/cv')
   @UseInterceptors(FileInterceptor('file'))
   async uploadCv(
@@ -91,12 +100,14 @@ export class EngineerController {
   }
 
   // Récupérer les ingénieurs avec pagination et filtres
+  @UseGuards(JwtAuthGuard)
   @Get()
   async findPaginatedEngineers(
     @Query("page", ParseIntPipe) page: number = 1,
     @Query("limit", ParseIntPipe) limit: number = 10,
     @Query("search") search?: string,
     @Query("specialty") specialty?: string,
+    @Query('availability') availability?: AvailabilityStatus,
   ): Promise<PaginatedResponse<Engineer>> {
     if (page < 1 || limit < 1) {
       throw new BadRequestException("La page et la limite doivent être supérieures à 0");
@@ -107,11 +118,13 @@ export class EngineerController {
       limit,
       search,
       specialty,
+      availability,
     };
 
     return this.engineerService.findPaginatedEngineers(paginationParams);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('stats/count')
   async getEngineerStats() {
     const [total, availabilityCounts] = await Promise.all([
@@ -126,11 +139,15 @@ export class EngineerController {
     };
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Get('stats/availability-count')
   async getAvailabilityCounts(): Promise<{ available: number; unavailable: number }> {
     return this.engineerService.getAvailabilityCounts();
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Post('notify-profile-update')
   async notifyProfileUpdate(
     @Body() body: { engineerId: number; taskId: string; status: string; message: string },

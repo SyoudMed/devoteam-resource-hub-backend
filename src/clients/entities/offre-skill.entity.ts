@@ -12,7 +12,9 @@ export class OffreSkill {
   @Column()
   category: string;
 
-  @ManyToOne(() => Offre, (offre) => offre.requiredSkills, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Offre, (offre) => offre.requiredSkills, { 
+    onDelete: 'CASCADE' 
+  })
   @JoinColumn({ name: 'offre_id' })  
   offre: Offre;
 }

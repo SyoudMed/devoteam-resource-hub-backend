@@ -56,12 +56,6 @@ export class Engineer {
     },
   })
   skills: Skills[];
-  
-  
-
-
-
- 
 
   @Column('json', { nullable: true })
   formations: string[];

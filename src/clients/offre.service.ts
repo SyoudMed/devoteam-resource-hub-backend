@@ -38,14 +38,14 @@ export class OffreService {
         endDate: createOffreDto.endDate,
         experience: createOffreDto.experience,
         requiredSpeciality: createOffreDto.requiredSpeciality,
-        languages: createOffreDto.languages, // Ajout de la propriété languages
+        languages: createOffreDto.languages, 
         status: OffreStatus.EN_ATTENTE,
         createdBy: user,
       });
 
       const savedOffre = await this.offreRepository.save(offre);
 
-      // Créer les compétences associées (requiredSkills)
+      
       if (createOffreDto.requiredSkills?.length) {
         const skills = createOffreDto.requiredSkills.map((skill) =>
           this.offreSkillRepository.create({
@@ -106,39 +106,75 @@ export class OffreService {
   }
 
   async update(id: number, updateOffreDto: UpdateOffreDto): Promise<Offre> {
+    const queryRunner = this.offreRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+  
     try {
-      const offre = await this.findOne(id);
+      const offreRepository = queryRunner.manager.getRepository(Offre);
+      const offreSkillRepository = queryRunner.manager.getRepository(OffreSkill);
 
-      // Mise à jour des champs de base
+      const offre = await offreRepository.findOne({
+        where: { id },
+        relations: ['requiredSkills'],
+      });
+  
+      if (!offre) {
+        throw new NotFoundException(`Offre avec l'ID ${id} non trouvée`);
+      }
+  
       Object.assign(offre, updateOffreDto);
-
-      // Si des compétences sont fournies dans le DTO, mettre à jour les requiredSkills
+  
       if (updateOffreDto.requiredSkills) {
-        // Supprimer les anciennes compétences
-        await this.offreSkillRepository.delete({ offre: { id } });
+        await queryRunner.manager
+          .createQueryBuilder()
+          .delete()
+          .from('offre_skill')
+          .where('offre_id = :id', { id })
+          .execute();
 
-        // Ajouter les nouvelles compétences
-        const newSkills = updateOffreDto.requiredSkills.map((skill) =>
-          this.offreSkillRepository.create({
+        const remainingSkills = await queryRunner.manager
+          .createQueryBuilder()
+          .select()
+          .from('offre_skill', 'skill')
+          .where('skill.offre_id = :id', { id })
+          .getRawMany();
+  
+        if (remainingSkills.length > 0) {
+          throw new Error('Échec de la suppression des anciennes compétences');
+        }
+  
+        const newSkills = updateOffreDto.requiredSkills.map(skill => 
+          offreSkillRepository.create({
             skill_name: skill.skill_name,
             category: skill.category,
-            offre,
-          }),
+            offre: { id } 
+          })
         );
-        await this.offreSkillRepository.save(newSkills);
+  
+        await offreSkillRepository.save(newSkills);
+        offre.requiredSkills = newSkills;
       }
-
-      return await this.offreRepository.save(offre);
+      const updatedOffre = await offreRepository.save(offre);
+      await queryRunner.commitTransaction();
+      
+      return updatedOffre;
     } catch (error) {
-      console.error(`Erreur lors de la mise à jour de l'offre ${id} :`, error);
-      throw new InternalServerErrorException('Erreur lors de la mise à jour');
+      await queryRunner.rollbackTransaction();
+      console.error(`Erreur lors de la mise à jour de l'offre ${id}:`, error);
+      throw new InternalServerErrorException(
+        error instanceof NotFoundException 
+          ? error.message 
+          : 'Erreur lors de la mise à jour de l\'offre'
+      );
+    } finally {
+      await queryRunner.release();
     }
   }
 
   async remove(id: number): Promise<void> {
     try {
       const offre = await this.findOne(id);
-      // Les relations avec OffreSkill et Reservation seront automatiquement supprimées grâce à onDelete: 'CASCADE'
       await this.offreRepository.remove(offre);
     } catch (error) {
       console.error(`Erreur lors de la suppression de l'offre ${id} :`, error);
