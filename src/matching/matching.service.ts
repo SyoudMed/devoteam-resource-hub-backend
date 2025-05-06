@@ -55,11 +55,11 @@ export class MatchingService {
     });
 
     const sortedResults = results.sort((a, b) => b.matchScore - a.matchScore);
-    const top5Results = sortedResults.slice(0, 5);
+    const top6Results = sortedResults.slice(0, 6);
 
-    if (top5Results.length > 0) {
+    if (top6Results.length > 0) {
       await Promise.all(
-        top5Results.map((r) =>
+        top6Results.map((r) =>
           this.matchResultRepo.save(
             this.matchResultRepo.create({
               engineer: { id: r.engineerId },
@@ -129,7 +129,7 @@ export class MatchingService {
       .map((skill) => ({ skill_name: skill }));
   }
 
-  computeScore(offre: Offre, engineer: Engineer): number {
+  private computeScore(offre: Offre, engineer: Engineer): number {
     const offreSkillNames = (offre.requiredSkills || []).map((s) => s.skill_name?.toLowerCase());
     const engineerSkillNames = (engineer.skills || []).map((s) => s.skill_name?.toLowerCase());
 
@@ -140,7 +140,7 @@ export class MatchingService {
     const skillScore = (matchedSkills.length / (offreSkillNames.length || 1)) * 60;
     const specialityScore = engineer.speciality === offre.requiredSpeciality ? 20 : 0;
     const experienceScore = engineer.totalExperienceYear >= offre.experience ? 10 : 0;
-    const languageScore = 10; // Peut être adapté si nécessaire
+    const languageScore = 10; 
 
     return skillScore + specialityScore + experienceScore + languageScore;
   }

@@ -77,14 +77,13 @@ export class EngineerController {
     @Body() dto: UpdateEngineerProfileDto,
   ) {
     const updated = await this.engineerService.updateProfile(id, dto);
-    // Émission via Socket.IO
-    /*
+    
     this.profileUpdateGateway.notifyProfileUpdate(
       id,
       'success',
       'Profil mis à jour avec succès',
       Date.now().toString(),
-    );*/
+    );
     return updated;
   }
 
@@ -99,7 +98,7 @@ export class EngineerController {
     return this.engineerService.uploadEngineerCv(id, file);
   }
 
-  // Récupérer les ingénieurs avec pagination et filtres
+  
   @UseGuards(JwtAuthGuard)
   @Get()
   async findPaginatedEngineers(

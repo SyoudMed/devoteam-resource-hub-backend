@@ -10,13 +10,13 @@ export class MatchingController {
   constructor(private readonly matchingService: MatchingService) {}
 
 
-  @Roles(UserRole.MANAGER)
+  @Roles(UserRole.COMMERCIAL)
   @Get('match/:offreId')
   match(@Param('offreId') offreId: number) {
     return this.matchingService.match(+offreId);
   }
 
-  
+  @Roles(UserRole.COMMERCIAL)
   @Get('matchresult/:offreId')
   async getMatchesByOffreId(@Param('offreId', ParseIntPipe) offreId: number) {
     return this.matchingService.getMatchesByOffreId(offreId);
