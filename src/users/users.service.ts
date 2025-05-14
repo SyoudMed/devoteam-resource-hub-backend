@@ -15,34 +15,8 @@ export class UsersService {
     
   ) {}
 
-  async createUser(createUserDto: CreateUserDto): Promise<User> {
-    try {
-        const existingUser = await this.usersRepository.findOne({
-            where: { email: createUserDto.email },
-        });
-        
-        if (existingUser) {
-            throw new BadRequestException('Cet email est déjà utilisé.');
-        }
-        if (!createUserDto.password || createUserDto.password.length < 8) {
-            throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
-        }
-        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-        const user = this.usersRepository.create({
-            ...createUserDto,
-            password: hashedPassword,
-        });
-        const savedUser = await this.usersRepository.save(user);
-        const { password, ...result } = savedUser;
-        return result as User;
-        
-    } catch (error) {
-        if (error instanceof BadRequestException || error instanceof BadRequestException) {
-            throw error;
-        }
-        throw new InternalServerErrorException("Une erreur est survenue lors de la création de l'utilisateur");
-    }
-}
+  
+
 
 
   async updateProfile(userId: number, updateProfileDto: UpdateUserDto, file?: Express.Multer.File): Promise<User> {

@@ -9,7 +9,6 @@ import { UpdateUserDto } from 'src/users/dto/update-user.dto';
 import { User } from 'src/users/entities/user.entity';
 import { Like, Repository } from 'typeorm';
 
-
 @Injectable()
 export class CommercialService {
   constructor(
@@ -18,6 +17,16 @@ export class CommercialService {
     private mailService: MailService,
   ) {}
 
+  
+  private generateRandomPassword(length: number = 12): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * chars.length);
+      password += chars[randomIndex];
+    }
+    return password;
+  }
 
   async createCommercial(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.userRepository.findOne({
@@ -26,10 +35,15 @@ export class CommercialService {
     if (existingUser) {
       throw new BadRequestException("Cet email existe déjà");
     }
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+  
+    const randomPassword = this.generateRandomPassword();
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationCodeExpiration = new Date();
     verificationCodeExpiration.setHours(verificationCodeExpiration.getHours() + 1);
+
     const newUser = this.userRepository.create({
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
@@ -41,28 +55,29 @@ export class CommercialService {
       verificationCodeExpiration: verificationCodeExpiration.getTime(),
       isVerified: false,
     });
+
     const savedUser = await this.userRepository.save(newUser);
+
     try {
+      
       await this.mailService.sendAccountVerificationEmail(
         savedUser.email,
-        createUserDto.password,
+        randomPassword, 
         verificationCode,
       );
     } catch (error) {
       await this.userRepository.remove(savedUser);
       throw new BadRequestException("Erreur lors de l'envoi de l'email de vérification");
     }
+
     return savedUser;
   }
 
-
   async getAllCommercials(): Promise<User[]> {
     return this.userRepository.find({
-      where: { role: UserRole.COMMERCIAL }, 
+      where: { role: UserRole.COMMERCIAL },
     });
   }
-
-
 
   async findPaginated({ page, limit, search = '' }: PaginationParams): Promise<PaginatedResponse<User>> {
     const skip = (page - 1) * limit;
@@ -78,7 +93,7 @@ export class CommercialService {
       take: limit,
       order: { id: 'ASC' },
     });
-  
+
     return {
       data: commercials,
       total,
@@ -87,9 +102,7 @@ export class CommercialService {
       limit,
     };
   }
-  
 
-  
   async updateCommercial(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id, role: UserRole.COMMERCIAL } });
     if (!user) {
@@ -99,15 +112,13 @@ export class CommercialService {
     return this.userRepository.save(user);
   }
 
-
-  async deleteCommercial(id: number):  Promise<{ message: string }> {
+  async deleteCommercial(id: number): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({ where: { id, role: UserRole.COMMERCIAL } });
     if (!user) {
       throw new ConflictException('commercial non trouvé');
     }
     await this.userRepository.remove(user);
-    const response = { message: `Commercial  supprimé avec succès` };
+    const response = { message: `Commercial supprimé avec succès` };
     return response;
   }
-
 }

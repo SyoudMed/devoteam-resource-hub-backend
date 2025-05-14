@@ -1,10 +1,9 @@
 import { User } from '../../users/entities/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
-import { Comment } from '../../comments/entities/comment.entity';
+import { Suggestion } from '../../Suggestions/entities/Suggestion.entity';
 import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { Experience } from '../../experiences/entities/experience.entity'; 
 import { Skills } from '../../skills/entities/skill.entity';
-
 
 export enum AvailabilityStatus {
   AVAILABLE = 'available',
@@ -17,8 +16,6 @@ export enum Speciality {
   CYBER_SECURITY = 'Cyber Security',
   DATA = 'Data',
 }
-
-
 
 @Entity()
 export class Engineer {
@@ -70,13 +67,11 @@ export class Engineer {
   @Column({ name: 'userId' }) 
   userId: number;
 
-  @OneToMany(() => Comment, (comment) => comment.engineer)
-  comments: Comment[];
+  @OneToMany(() => Suggestion, (suggestion) => suggestion.engineer)
+  suggestions: Suggestion[];
 
   @OneToMany(() => Reservation, (reservation) => reservation.engineer, { onDelete: 'CASCADE' })
   reservations: Reservation[];
-
-  
 
   @Column({ type: 'varchar', nullable: true })
   CvUrl?: string;

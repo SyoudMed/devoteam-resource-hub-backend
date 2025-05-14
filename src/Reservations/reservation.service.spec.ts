@@ -4,7 +4,7 @@ import { ReservationService } from './reservation.service';
 import { Reservation } from './entities/reservation.entity';
 import { User } from '../users/entities/user.entity';
 import { Offre } from '../clients/entities/offre.entity';
-import { Comment } from '../comments/entities/comment.entity';
+import { Comment } from '../Suggestions/entities/Suggestion.entity';
 import { Engineer } from '../engineer/entities/engineer.entity';
 import { MailService } from '../mail/mail.service';
 import { Experience } from 'src/experiences/entities/experience.entity';

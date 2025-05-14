@@ -10,14 +10,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { FileInterceptor } from '@nestjs/platform-express'; 
 @Controller('users')
-
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post('CreateUser')
-  async create(@Body() createUserDto: CreateUserDto): Promise<User> {
-    return this.usersService.createUser(createUserDto);
-  }
+  
   @Delete(':id')
   @Roles(UserRole.MANAGER)
   async deleteUser(@Param('id') id: number) {
@@ -26,7 +23,7 @@ export class UsersController {
 
   @Get('list')
   @Roles(UserRole.MANAGER)
-  async findAll() {
+  async findAllUsers() {
     return this.usersService.findAll();
   }
 

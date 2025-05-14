@@ -4,7 +4,7 @@ import { EngineerService } from './engineer.service';
 import { Engineer } from './entities/engineer.entity';
 import { User } from '../users/entities/user.entity';
 import { Experience } from '../experiences/entities/experience.entity';
-import { Comment } from '../comments/entities/comment.entity';
+import { Suggestion } from '../Suggestions/entities/Suggestion.entity';
 import { Reservation } from '../Reservations/entities/reservation.entity';
 import { Offre } from '../clients/entities/offre.entity';
 import { MailService } from '../mail/mail.service';

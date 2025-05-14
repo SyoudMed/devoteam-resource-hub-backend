@@ -11,7 +11,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async authentifier(@Body() loginDto: LoginDto) {
     return this.authService.authenticate(loginDto);
   }
 
@@ -24,7 +24,7 @@ export class AuthController {
 
   
   @Put('reset-password')
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+  async ChangertMotDePasse(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPasswordWithCode(
       resetPasswordDto.email,
       resetPasswordDto.resetPasswordCode,

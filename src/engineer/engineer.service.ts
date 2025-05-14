@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  StreamableFile,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In } from 'typeorm';
@@ -18,9 +19,12 @@ import { Experience } from 'src/experiences/entities/experience.entity';
 import { MailService } from 'src/mail/mail.service';
 import { Skills } from 'src/skills/entities/skill.entity';
 import { PaginatedResponse, PaginationParams } from './dto/pagination-params.dto';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
 
 
-
+import axios from 'axios';
 
 @Injectable()
 export class EngineerService {
@@ -37,8 +41,15 @@ export class EngineerService {
   ) {}
 
 
- 
-
+  private generateRandomPassword(length: number = 12): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * chars.length);
+      password += chars[randomIndex];
+    }
+    return password;
+  }
 
 
   async create(createEngineerDto: CreateUserDto): Promise<Engineer> {
@@ -48,12 +59,14 @@ export class EngineerService {
     if (existingUser) {
       throw new ConflictException("Email déjà existant");
     }
-
-    const hashedPassword = await bcrypt.hash(createEngineerDto.password, 10);
-
+  
+    
+    const randomPassword = this.generateRandomPassword();
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+  
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationCodeExpiration = Date.now() + 3600000;
-
+  
     const user = this.userRepository.create({
       firstName: createEngineerDto.firstName,
       lastName: createEngineerDto.lastName,
@@ -65,21 +78,22 @@ export class EngineerService {
       verificationCodeExpiration,
       isVerified: false,
     });
-
+  
     const savedUser = await this.userRepository.save(user);
-
+  
     const engineer = this.engineerRepository.create({
       disponibiliteStatus: createEngineerDto.disponibiliteStatus || AvailabilityStatus.AVAILABLE,
       speciality: createEngineerDto.speciality,
       user: savedUser,
     });
-
+  
     const savedEngineer = await this.engineerRepository.save(engineer);
-
+  
     try {
+      
       await this.mailService.sendAccountVerificationEmail(
         createEngineerDto.email,
-        createEngineerDto.password, 
+        randomPassword, 
         verificationCode,
       );
     } catch (error) {
@@ -87,14 +101,14 @@ export class EngineerService {
       await this.userRepository.remove(savedUser);
       throw new BadRequestException("Erreur lors de l'envoi de l'email de vérification");
     }
-
+  
     return savedEngineer;
   }
 
   async findEngineerById(id: number): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { id },
-      relations: ['user', 'experiences', 'comments'],
+      relations: ['user', 'experiences', 'suggestions'],
     });
 
     if (!engineer) {
@@ -223,13 +237,11 @@ export class EngineerService {
           const { category, skills } = skillGroup;
 
           if (!category || !Array.isArray(skills) || skills.length === 0) {
-            console.warn(`Groupe de compétences invalide: category=${category}, skills=${JSON.stringify(skills)}`);
             continue;
           }
 
           for (const skillName of skills) {
             if (!skillName || typeof skillName !== 'string' || skillName.trim() === '') {
-              console.warn(`Compétence invalide: ${skillName}`);
               continue;
             }
 
@@ -309,7 +321,6 @@ export class EngineerService {
     }
   }
   
-  
 
   async findAllEngineers(): Promise<Engineer[]> {
     return this.engineerRepository.find({ relations: ['user', 'experiences'] });
@@ -324,7 +335,7 @@ export class EngineerService {
     specialty = '',
     availability,
   }: PaginationParams): Promise<PaginatedResponse<Engineer>> {
-    // Validation des paramètres
+    
     if (page < 1 || limit < 1) {
       throw new BadRequestException('La page et la limite doivent être supérieures à 0');
     }
@@ -406,7 +417,7 @@ export class EngineerService {
     return { message: `Ingénieur avec l'ID ${id} supprimé avec succès` };
   }
 
-  
+
   async findEngineerByUserId(userId: number): Promise<Engineer> {
     const engineer = await this.engineerRepository.findOne({
       where: { user: { id: userId } },
@@ -450,8 +461,6 @@ export class EngineerService {
       );
     }
   }
-
-  
 
 }
 

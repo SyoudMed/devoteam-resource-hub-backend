@@ -2,8 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 import { Engineer } from '../../engineer/entities/engineer.entity';
 import { User } from '../../users/entities/user.entity';
 
-// Enum pour les types de commentaire
-export enum CommentType {
+
+export enum SuggestiontType {
   TRAINING = 'training',
   SKILL = 'skill',
   EXPERIENCE = 'experience',
@@ -11,7 +11,7 @@ export enum CommentType {
 }
 
 @Entity()
-export class Comment {
+export class Suggestion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -23,16 +23,16 @@ export class Comment {
 
   @Column({
     type: 'enum',
-    enum: CommentType,
-    default: CommentType.GENERAL,
+    enum: SuggestiontType,
+    default: SuggestiontType.GENERAL,
   })
-  type: CommentType;
+  type: SuggestiontType;
 
   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'authorId' })
   author: User;
 
-  @ManyToOne(() => Engineer, (engineer) => engineer.comments, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => Engineer, (engineer) => engineer.suggestions, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'engineerId' })
   engineer: Engineer;
 }

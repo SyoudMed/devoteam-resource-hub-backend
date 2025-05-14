@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile, BadRequestException, Res, StreamableFile, Header } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EngineerService } from './engineer.service';
 import { Engineer } from './entities/engineer.entity';
@@ -12,7 +12,7 @@ import { UpdateEngineerProfileDto } from './dto/update-engineer-profile.dto';
 import { ProfileUpdateGateway } from 'src/profile-update.gateway';
 import { AvailabilityStatus } from 'src/common/enum/AvailabilityStatus.enum';
 import { PaginatedResponse, PaginationParams } from './dto/pagination-params.dto';
-
+import { Response } from '@nestjs/common';
 @Controller('engineers')
 
 export class EngineerController {
@@ -46,7 +46,7 @@ export class EngineerController {
 
   // Mettre à jour la disponibilité d’un ingénieur
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.MANAGER)
+  @Roles(UserRole.MANAGER, UserRole.INGENIEUR)
   @Patch(':id')
   async updateAvailability(
     @Param('id', ParseIntPipe) id: number,
@@ -77,13 +77,7 @@ export class EngineerController {
     @Body() dto: UpdateEngineerProfileDto,
   ) {
     const updated = await this.engineerService.updateProfile(id, dto);
-    
-    this.profileUpdateGateway.notifyProfileUpdate(
-      id,
-      'success',
-      'Profil mis à jour avec succès',
-      Date.now().toString(),
-    );
+  
     return updated;
   }
 
@@ -111,7 +105,6 @@ export class EngineerController {
     if (page < 1 || limit < 1) {
       throw new BadRequestException("La page et la limite doivent être supérieures à 0");
     }
-
     const paginationParams: PaginationParams = {
       page,
       limit,
@@ -146,19 +139,9 @@ export class EngineerController {
   }
 
 
-  @UseGuards(JwtAuthGuard)
-  @Post('notify-profile-update')
-  async notifyProfileUpdate(
-    @Body() body: { engineerId: number; taskId: string; status: string; message: string },
-  ) {
-    this.profileUpdateGateway.notifyProfileUpdate(
-      body.engineerId,
-      body.status,
-      body.message,
-      body.taskId,
-    );
-    return { message: 'Notification envoyée' };
-  }
-
   
+  
+  
+
+
 }

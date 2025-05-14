@@ -1,7 +1,7 @@
+import { Suggestion } from './Suggestions/entities/Suggestion.entity';
 import { DataSource } from 'typeorm';
 import { User } from './users/entities/user.entity';
 import { Engineer } from './engineer/entities/engineer.entity';
-import { Comment } from './comments/entities/comment.entity';
 import { Experience } from './experiences/entities/experience.entity';
 
 export const dataSource = new DataSource({
@@ -14,7 +14,7 @@ export const dataSource = new DataSource({
   entities: [
     User,
     Engineer,
-    Comment,
+    Suggestion,
     Experience, 
     __dirname + '/**/*.entity{.ts,.js}', 
   ],
