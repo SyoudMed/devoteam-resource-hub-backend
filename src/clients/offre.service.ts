@@ -91,7 +91,7 @@ export class OffreService {
     try {
       const offre = await this.offreRepository.findOne({
         where: { id },
-        relations: ['createdBy', 'requiredSkills', 'reservations'],
+        relations: ['createdBy', 'requiredSkills', 'reservations','assignedEngineer','assignedEngineer.user'],
       });
 
       if (!offre) {

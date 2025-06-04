@@ -462,6 +462,46 @@ export class EngineerService {
     }
   }
 
+  async downloadCV(id: number): Promise<StreamableFile> {
+    // Récupérer l'ingénieur
+    const engineer = await this.engineerRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+
+    if (!engineer) {
+      throw new NotFoundException(`Ingénieur avec l'ID ${id} non trouvé`);
+    }
+
+    if (!engineer.CvUrl) {
+      throw new NotFoundException(`Aucun CV disponible pour l'ingénieur avec l'ID ${id}`);
+    }
+
+    try {
+      // Télécharger le fichier depuis Cloudinary via l'URL
+      const response = await axios.get(engineer.CvUrl, {
+        responseType: 'arraybuffer', // Pour gérer les fichiers binaires
+      });
+
+      if (!response.data) {
+        throw new BadRequestException('Échec de la récupération du CV depuis Cloudinary');
+      }
+
+      // Créer un StreamableFile pour le téléchargement
+      const buffer = Buffer.from(response.data);
+      const fileName = `cv-${engineer.user.firstName}-${engineer.user.lastName}.pptx`;
+
+      return new StreamableFile(buffer, {
+        disposition: `attachment; filename="${fileName}"`,
+        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        `Erreur lors du téléchargement du CV depuis Cloudinary: ${error.message}`,
+      );
+    }
+  }
+
 }
 
 

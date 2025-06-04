@@ -3,6 +3,7 @@ import { Reservation } from '../../Reservations/entities/reservation.entity';
 import { User } from '../../users/entities/user.entity';
 import { OffreSkill } from './offre-skill.entity';
 import { MatchingResult } from '../../matching/entities/matching-result.entity';
+import { Engineer } from '../../engineer/entities/engineer.entity';
 
 export enum OffreStatus {
   ACCEPTER = 'accepter',
@@ -67,4 +68,8 @@ export class Offre {
 
   @OneToMany(() => MatchingResult, (result) => result.offre)
   matchingResults: MatchingResult[];
+
+  @ManyToOne(() => Engineer, { nullable: true }) 
+  @JoinColumn({ name: 'assignedEngineerId' })
+  assignedEngineer: Engineer | null;
 }

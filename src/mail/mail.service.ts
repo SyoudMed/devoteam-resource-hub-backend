@@ -109,4 +109,34 @@ export class MailService {
     await this.transporter.sendMail(mailOptions);
     return { message: `Email envoyé à ${email}` };
   }
+  async sendReservationCancellationEmail(
+    email: string,
+    details: {
+      engineerName: string;
+      startTime: string;
+      endTime: string;
+      clientName: string;
+      meetingPurpose: string;
+      commercialName: string;
+    },
+  ): Promise<{ message: string }> {
+    const htmlContent = this.loadTemplate("reservation-cancellation", {
+      engineerName: details.engineerName,
+      startTime: details.startTime,
+      endTime: details.endTime,
+      clientName: details.clientName,
+      meetingPurpose: details.meetingPurpose,
+      commercialName: details.commercialName,
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Annulation de votre réservation",
+      html: htmlContent,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+    return { message: `Email envoyé à ${email}` };
+  }
 }

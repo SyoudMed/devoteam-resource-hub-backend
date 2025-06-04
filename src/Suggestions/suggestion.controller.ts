@@ -14,7 +14,7 @@ export class SuggestionController {
 
   @Post('engineers/:engineerId')
   @Roles(UserRole.MANAGER)
-  async addSuggestion(
+  async AjouterSuggestion(
     @Param('engineerId', ParseIntPipe) engineerId: number,
     @Body() createSuggestionDto: CreateSuggestionDto,
     @Req() req: Request,

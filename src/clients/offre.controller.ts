@@ -15,24 +15,24 @@ export class OffreController {
 
   @Post()
   @Roles(UserRole.COMMERCIAL)
-  async create(@Body() createOffreDto: CreateOffreDto): Promise<Offre> {
+  async createoffre(@Body() createOffreDto: CreateOffreDto): Promise<Offre> {
     return this.offreService.create(createOffreDto);
   }
 
   @Get()
-  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) // MANAGER peut aussi voir toutes les offres
-  async findAll(): Promise<Offre[]> {
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) 
+  async findAllOffres(): Promise<Offre[]> {
     return this.offreService.findAll();
   }
 
   @Get('pending')
-  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) // MANAGER peut aussi voir les offres en attente
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) 
   async findAllPending(): Promise<Offre[]> {
     return this.offreService.findAllPending();
   }
 
   @Get(':id')
-  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) // MANAGER peut aussi voir une offre spécifique
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) 
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<Offre> {
     return this.offreService.findOne(id);
   }
@@ -53,13 +53,13 @@ export class OffreController {
   }
 
   @Get('count/count-by-speciality')
-  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) // MANAGER peut aussi voir les statistiques
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) 
   async getOffersCountBySpeciality(): Promise<{ speciality: Speciality; count: number }[]> {
     return this.offreService.getOffersCountBySpeciality();
   }
 
   @Get('count/count-by-status')
-  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) // MANAGER peut aussi voir les statistiques
+  @Roles(UserRole.COMMERCIAL, UserRole.MANAGER) 
   async getOffersCountByStatus(): Promise<{ en_cours: number; en_attente: number }> {
     return this.offreService.getOffersCountByStatus();
   }

@@ -16,7 +16,7 @@ export class ReservationController {
   
   @Post()
   @Roles(UserRole.COMMERCIAL)
-  create(@Body() createReservationDto: CreateReservationDto): Promise<Reservation> {
+  AjouterReservation(@Body() createReservationDto: CreateReservationDto): Promise<Reservation> {
     return this.reservationService.create(createReservationDto);
   }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile, BadRequestException, Res, StreamableFile, Header } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards,HttpException, HttpStatus, ParseIntPipe, UseInterceptors, UploadedFile, BadRequestException, Res, StreamableFile, Header } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EngineerService } from './engineer.service';
 import { Engineer } from './entities/engineer.entity';
@@ -13,6 +13,8 @@ import { ProfileUpdateGateway } from 'src/profile-update.gateway';
 import { AvailabilityStatus } from 'src/common/enum/AvailabilityStatus.enum';
 import { PaginatedResponse, PaginationParams } from './dto/pagination-params.dto';
 import { Response } from '@nestjs/common';
+
+
 @Controller('engineers')
 
 export class EngineerController {
@@ -138,6 +140,21 @@ export class EngineerController {
     return this.engineerService.getAvailabilityCounts();
   }
 
+
+  @Get(':id/download-cv')
+  async downloadCV(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<StreamableFile> {
+    try {
+      const streamableFile = await this.engineerService.downloadCV(id);
+      return streamableFile;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Erreur lors du téléchargement du CV',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   
   
