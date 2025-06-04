@@ -45,6 +45,8 @@ export class MatchingService {
         firstName: engineer.user?.firstName,
         lastName: engineer.user?.lastName,
         poste: engineer.poste,
+        tel: engineer.user?.telephone,
+        email: engineer.user?.email,
         speciality: engineer.speciality,
         availabilityStatus: engineer.disponibiliteStatus,
         skills: engineer.skills,

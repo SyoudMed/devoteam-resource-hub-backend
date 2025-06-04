@@ -3,7 +3,7 @@ name: Build & Deploy NestJS with MySQL
 on:
   push:
     branches:
-      - develop-v7
+      - develop-v8
 
 jobs:
   build-deploy:
